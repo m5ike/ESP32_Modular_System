@@ -4,7 +4,7 @@ CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     tft = nullptr;
     lcdInitialized = false;
     brightness = 255;
-    rotation = 0;
+    rotation = 90;
     priority = 90; // High priority
     autoStart = true;
     version = "1.0.1";
