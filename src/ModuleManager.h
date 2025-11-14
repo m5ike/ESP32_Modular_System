@@ -64,6 +64,7 @@ class ModuleManager {
 private:
     std::vector<Module*> modules;
     static ModuleManager* instance;
+    std::vector<String> lcdLogs;
     
     ModuleManager();
     
@@ -81,14 +82,13 @@ public:
     
     bool loadGlobalConfig();
     bool saveGlobalConfig();
-<<<<<<< HEAD
-=======
     bool applyConfig(DynamicJsonDocument& doc);
->>>>>>> de1429e (commit)
     
     std::vector<Module*> getModules() { return modules; }
     
     void sortModulesByPriority();
+    void appendLCDLog(const String& line);
+    void renderLoadingStep(const String& op, int percent);
 };
 
 #endif

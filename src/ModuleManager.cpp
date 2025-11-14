@@ -1,5 +1,6 @@
 #include "ModuleManager.h"
 #include "modules/CONTROL_FS.h"
+#include "modules/CONTROL_LCD.h"
 #include <algorithm>
 
 ModuleManager* ModuleManager::instance = nullptr;
@@ -50,13 +51,10 @@ void Module::log(const String& message, const char* level) {
     // Also log to file system if CONTROL_FS is available
     Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
     if (fsModule && fsModule->getState() == MODULE_ENABLED) {
-<<<<<<< HEAD
-        // TODO: Call FS module logging function
-=======
         CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
         fs->writeLog(logMsg, level);
->>>>>>> de1429e (commit)
     }
+    ModuleManager::getInstance()->appendLCDLog(logMsg);
 }
 
 // ModuleManager implementation
@@ -118,28 +116,41 @@ bool ModuleManager::initModules() {
     sortModulesByPriority();
     
     Serial.println("Initializing modules...");
+    int idx = 0;
     for (auto* mod : modules) {
         Serial.println("Init: " + mod->getName());
+        int percent = (int)((idx * 100.0) / modules.size());
+        renderLoadingStep(String("Init ")+mod->getName(), percent);
         if (!mod->init()) {
             mod->setState(MODULE_ERROR);
             Serial.println("Failed to init: " + mod->getName());
             return false;
         }
+        renderLoadingStep(String("Initialized ")+mod->getName(), percent);
+        idx++;
     }
+    renderLoadingStep("Init completed", 100);
     return true;
 }
 
 bool ModuleManager::startModules() {
     Serial.println("Starting modules...");
+    int total = modules.size();
+    int done = 0;
     for (auto* mod : modules) {
         if (mod->isAutoStart() && mod->getState() == MODULE_ENABLED) {
             Serial.println("Starting: " + mod->getName());
+            done++;
+            int percent = (int)((done * 100.0) / total);
+            renderLoadingStep(String("Start ")+mod->getName(), percent);
             if (!mod->start()) {
                 mod->setState(MODULE_ERROR);
                 Serial.println("Failed to start: " + mod->getName());
             }
+            renderLoadingStep(String("Started ")+mod->getName(), percent);
         }
     }
+    renderLoadingStep("Start completed", 100);
     return true;
 }
 
@@ -164,14 +175,6 @@ bool ModuleManager::updateModules() {
 }
 
 bool ModuleManager::loadGlobalConfig() {
-<<<<<<< HEAD
-    // This will be implemented after CONTROL_FS is created
-    return true;
-}
-
-bool ModuleManager::saveGlobalConfig() {
-    // This will be implemented after CONTROL_FS is created
-=======
     Module* fsMod = getModule("CONTROL_FS");
     if (!fsMod) return false;
     CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsMod);
@@ -196,6 +199,41 @@ bool ModuleManager::applyConfig(DynamicJsonDocument& doc) {
     for (Module* mod : modules) {
         mod->loadConfig(doc);
     }
->>>>>>> de1429e (commit)
     return true;
+}
+
+void ModuleManager::appendLCDLog(const String& line) {
+    lcdLogs.push_back(line);
+    while (lcdLogs.size() > 5) lcdLogs.erase(lcdLogs.begin());
+    Module* lcdMod = getModule("CONTROL_LCD");
+    if (!lcdMod) return;
+    CONTROL_LCD* lcd = static_cast<CONTROL_LCD*>(lcdMod);
+    if (!lcd || lcd->getState() != MODULE_ENABLED) return;
+    TFT_eSPI* tft = lcd->getDisplay();
+    if (!tft) return;
+    int16_t yStart = LCD_HEIGHT - 70;
+    tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
+    tft->setTextColor(TFT_WHITE);
+    tft->setTextSize(1);
+    int16_t y = yStart + 4;
+    for (const String& s : lcdLogs) {
+        tft->setCursor(4, y);
+        tft->print(s);
+        y += 12;
+    }
+}
+
+void ModuleManager::renderLoadingStep(const String& op, int percent) {
+    Module* lcdMod = getModule("CONTROL_LCD");
+    if (!lcdMod) return;
+    CONTROL_LCD* lcd = static_cast<CONTROL_LCD*>(lcdMod);
+    if (!lcd || lcd->getState() != MODULE_ENABLED) return;
+    TFT_eSPI* tft = lcd->getDisplay();
+    if (!tft) return;
+    tft->fillRect(0, 0, LCD_WIDTH, 40, TFT_BLACK);
+    lcd->drawCenteredText(18, "ESP32 Modular System", TFT_CYAN, 2);
+    tft->fillRect(0, 60, LCD_WIDTH, 180, TFT_BLACK);
+    lcd->drawCenteredText(120, op, TFT_WHITE, 2);
+    lcd->drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
+    appendLCDLog(String("[") + "INFO" + "][BOOT] " + op);
 }

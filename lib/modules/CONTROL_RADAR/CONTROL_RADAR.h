@@ -34,11 +34,7 @@ public:
                       distance(0.0f),
                       lastMeasurement(0) {
         priority = 50;
-<<<<<<< HEAD
-        autostart = false;
-=======
         autostart = true;
->>>>>>> de1429e (commit)
     }
     
     bool init() override {

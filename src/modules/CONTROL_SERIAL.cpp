@@ -154,8 +154,6 @@ void CONTROL_SERIAL::processCommand(const String& command) {
         moduleName.trim();
         cmdModuleConfig(moduleName);
     }
-<<<<<<< HEAD
-=======
     else if (cmd.startsWith("set ")) {
         int sp1 = command.indexOf(' ');
         int sp2 = command.indexOf(' ', sp1 + 1);
@@ -240,7 +238,6 @@ void CONTROL_SERIAL::processCommand(const String& command) {
             Serial.println("Usage: autostart <module> <on|off>");
         }
     }
->>>>>>> de1429e (commit)
     else if (cmd.startsWith("logs")) {
         int lines = 20;
         if (cmd.length() > 5) {
@@ -275,14 +272,11 @@ void CONTROL_SERIAL::printHelp() {
     Serial.println("stop <name>       - Stop module");
     Serial.println("test <name>       - Test module");
     Serial.println("config <name>     - Show module config");
-<<<<<<< HEAD
-=======
     Serial.println("set <m> <k> <v>   - Set module key to value");
     Serial.println("setjson <m> <js>  - Replace module JSON");
     Serial.println("enable <name>     - Enable module");
     Serial.println("disable <name>    - Disable module");
     Serial.println("autostart <m> on|off - Set autostart");
->>>>>>> de1429e (commit)
     Serial.println("logs [n]          - Show last n log lines (default: 20)");
     Serial.println("clearlogs         - Clear all logs");
     Serial.println("restart           - Restart system");

@@ -312,11 +312,7 @@ enum ModuleState {
 
 ### Globální konfigurace
 
-<<<<<<< HEAD
-Umístění: `/config/global.json`
-=======
 Umístění: `/cfg/global.json`
->>>>>>> de1429e (commit)
 
 ```json
 {

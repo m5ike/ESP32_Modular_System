@@ -2,7 +2,10 @@
 #define CONTROL_MEASURE_H
 
 #include "ModuleBase.h"
+#include <Arduino.h>
 #include <queue>
+#include "../../src/ModuleManager.h"
+#include "../../src/modules/CONTROL_LCD.h"
 
 // Measure component types
 enum MeasureType {
@@ -22,6 +25,8 @@ private:
     MeasureType measureType;
     uint8_t pinSensor;
     uint8_t pinLED;
+    uint8_t pinTrig;
+    uint8_t pinEcho;
     uint32_t queueSpeed;
     uint32_t ledBlinkInterval;
     std::queue<MeasureData> measureQueue;
@@ -36,11 +41,7 @@ public:
                         ledBlinkInterval(500),
                         maxQueueSize(100) {
         priority = 50;
-<<<<<<< HEAD
-        autostart = false;
-=======
         autostart = true;
->>>>>>> de1429e (commit)
     }
     
     bool init() override {
@@ -54,6 +55,8 @@ public:
         // Configure pins
         if (pinSensor > 0) pinMode(pinSensor, INPUT);
         if (pinLED > 0) pinMode(pinLED, OUTPUT);
+        if (pinTrig > 0) pinMode(pinTrig, OUTPUT);
+        if (pinEcho > 0) pinMode(pinEcho, INPUT);
         
         return true;
     }
@@ -115,6 +118,22 @@ public:
             digitalWrite(pinLED, ledState ? HIGH : LOW);
             lastBlink = now;
         }
+
+        if (measureType == MEASURE_DIBL1) {
+            Module* lcdMod = ModuleManager::getInstance()->getModule("CONTROL_LCD");
+            CONTROL_LCD* lcd = lcdMod ? static_cast<CONTROL_LCD*>(lcdMod) : nullptr;
+            if (lcd && lcd->getState() == MODULE_ENABLED) {
+                float dist = 0;
+                if (!measureQueue.empty()) { dist = measureQueue.back().value; }
+                TFT_eSPI* tft = lcd->getDisplay();
+                if (tft) {
+                    int16_t top = 60;
+                    int16_t h = 180;
+                    tft->fillRect(0, top, LCD_WIDTH, h, TFT_BLACK);
+                    lcd->drawCenteredText(top + 20, String("Distance ") + String(dist,1) + " cm", TFT_WHITE, 2);
+                }
+            }
+        }
     }
     
     bool loadConfig() override {
@@ -140,6 +159,8 @@ public:
         measureType = (MeasureType)((*config)["type"] | 0);
         pinSensor = (*config)["pin_sensor"] | 0;
         pinLED = (*config)["pin_led"] | 0;
+        pinTrig = (*config)["pin_trig"] | 0;
+        pinEcho = (*config)["pin_echo"] | 0;
         queueSpeed = (*config)["queue_speed"] | 1000;
         ledBlinkInterval = (*config)["led_blink_interval"] | 500;
         maxQueueSize = (*config)["max_queue_size"] | 100;
@@ -176,10 +197,20 @@ public:
         MeasureData data;
         data.timestamp = millis();
         
-        // Read analog value (example)
-        int rawValue = analogRead(pinSensor);
-        data.value = (rawValue / 4095.0) * 3.3; // Convert to voltage
-        data.unit = "V";
+        if (measureType == MEASURE_DIBL1 && pinTrig > 0 && pinEcho > 0) {
+            digitalWrite(pinTrig, LOW);
+            delayMicroseconds(2);
+            digitalWrite(pinTrig, HIGH);
+            delayMicroseconds(10);
+            digitalWrite(pinTrig, LOW);
+            long duration = pulseIn(pinEcho, HIGH, 30000);
+            data.value = duration / 58.0;
+            data.unit = "cm";
+        } else {
+            int rawValue = analogRead(pinSensor);
+            data.value = (rawValue / 4095.0) * 3.3;
+            data.unit = "V";
+        }
         
         // Add to queue
         measureQueue.push(data);

@@ -6,11 +6,7 @@ CONTROL_FS::CONTROL_FS() : Module("CONTROL_FS") {
     fsInitialized = false;
     priority = 100; // Highest priority
     autoStart = true;
-<<<<<<< HEAD
-    version = "1.0.0";
-=======
     version = "1.0.1";
->>>>>>> de1429e (commit)
 }
 
 CONTROL_FS::~CONTROL_FS() {
@@ -26,21 +22,14 @@ bool CONTROL_FS::init() {
         return false;
     }
     
-<<<<<<< HEAD
-=======
     initVersionAndPopulate();
     
->>>>>>> de1429e (commit)
     if (!checkAndCreateDirectories()) {
         log("Failed to create directories", "ERROR");
         setState(MODULE_ERROR);
         return false;
     }
     
-<<<<<<< HEAD
-    fsInitialized = true;
-    setState(MODULE_ENABLED);
-=======
     if (!validateConfigs()) {
         log("Config validation failed", "ERROR");
     }
@@ -53,7 +42,6 @@ bool CONTROL_FS::init() {
     size_t used = getUsedSpace();
     size_t free = getFreeSpace();
     log("FS summary: files=" + String(files) + ", total=" + String(total) + ", used=" + String(used) + ", free=" + String(free));
->>>>>>> de1429e (commit)
     log("File system initialized successfully");
     return true;
 }
@@ -117,6 +105,25 @@ bool CONTROL_FS::test() {
         return false;
     }
     
+    size_t total = getTotalSpace();
+    size_t used = getUsedSpace();
+    size_t free = getFreeSpace();
+    size_t filesRoot = countFiles();
+    log("FS capacity total=" + String(total) + ", used=" + String(used) + ", free=" + String(free));
+    log("FS files count=" + String(filesRoot));
+    std::vector<String> dirs = {"/", "/cfg", "/logs", "/web", "/config", "/data", "/tmp", "/test"};
+    for (const String& d : dirs) {
+        std::vector<String> files;
+        if (listDirectory(d, files)) {
+            for (const String& f : files) {
+                size_t sz = getFileSize(f);
+                String content = readFile(f);
+                String preview = content.substring(0, 20);
+                String kb = String(((float)sz) / 1024.0, 2);
+                log(getLogTimestamp() + " " + f + " " + kb + "kB " + preview);
+            }
+        }
+    }
     log("File system test passed");
     return true;
 }
@@ -146,31 +153,18 @@ bool CONTROL_FS::initFileSystem() {
         Serial.println("SPIFFS Mount Failed");
         return false;
     }
-<<<<<<< HEAD
-    
-    Serial.println("SPIFFS mounted successfully");
-    Serial.printf("Total space: %d bytes\n", getTotalSpace());
-    Serial.printf("Used space: %d bytes\n", getUsedSpace());
-    Serial.printf("Free space: %d bytes\n", getFreeSpace());
-=======
     fsInitialized = true;
     
     Serial.println("SPIFFS mounted successfully");
     Serial.printf("Total space: %d bytes\n", SPIFFS.totalBytes());
     Serial.printf("Used space: %d bytes\n", SPIFFS.usedBytes());
     Serial.printf("Free space: %d bytes\n", SPIFFS.totalBytes() - SPIFFS.usedBytes());
->>>>>>> de1429e (commit)
     
     return true;
 }
 
 bool CONTROL_FS::checkAndCreateDirectories() {
-<<<<<<< HEAD
-    // Create necessary directories
-    std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test"};
-=======
     std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test", "/cfg"};
->>>>>>> de1429e (commit)
     
     for (const String& dir : dirs) {
         if (!createDirectory(dir)) {
@@ -181,8 +175,6 @@ bool CONTROL_FS::checkAndCreateDirectories() {
     return true;
 }
 
-<<<<<<< HEAD
-=======
 bool CONTROL_FS::validateConfigs() {
     DynamicJsonDocument doc(8192);
     String cfg = readFile(CONFIG_FILE_PATH);
@@ -213,7 +205,6 @@ size_t CONTROL_FS::countFiles() {
     return count;
 }
 
->>>>>>> de1429e (commit)
 String CONTROL_FS::getLogTimestamp() {
     unsigned long ms = millis();
     unsigned long seconds = ms / 1000;
@@ -341,15 +332,11 @@ bool CONTROL_FS::writeLog(const String& message, const char* level) {
     }
     
     String logEntry = getLogTimestamp() + " [" + String(level) + "] " + message + "\n";
-<<<<<<< HEAD
-    return writeFile(LOG_FILE_PATH, logEntry, "a");
-=======
     const char* path = LOG_FILE_PATH;
     if (strcmp(level, "DEBUG") == 0) {
         path = "/logs/debug.log";
     }
     return writeFile(path, logEntry, "a");
->>>>>>> de1429e (commit)
 }
 
 String CONTROL_FS::readLogs(size_t maxLines) {
