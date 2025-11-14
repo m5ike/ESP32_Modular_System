@@ -34,7 +34,7 @@ public:
                       distance(0.0f),
                       lastMeasurement(0) {
         priority = 50;
-        autostart = false;
+        autostart = true;
     }
     
     bool init() override {

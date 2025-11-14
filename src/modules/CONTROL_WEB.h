@@ -28,6 +28,8 @@ private:
     void handleAPIModules(AsyncWebServerRequest *request);
     void handleAPIModuleControl(AsyncWebServerRequest *request);
     void handleAPIModuleConfig(AsyncWebServerRequest *request);
+    void handleAPIModuleSet(AsyncWebServerRequest *request);
+    void handleAPIModuleAutostart(AsyncWebServerRequest *request);
     void handleAPILogs(AsyncWebServerRequest *request);
     void handleAPITest(AsyncWebServerRequest *request);
     

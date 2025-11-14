@@ -4,6 +4,7 @@
 #include "../ModuleManager.h"
 #include <SPIFFS.h>
 #include <FS.h>
+#include "FSDefaults.h"
 
 #define FS_MAX_SIZE_DEFAULT 2097152  // 2 MB
 #define LOG_MAX_SIZE_DEFAULT 1048576 // 1 MB
@@ -19,6 +20,9 @@ private:
     bool initFileSystem();
     bool checkAndCreateDirectories();
     String getLogTimestamp();
+    bool validateConfigs();
+    bool initVersionAndPopulate();
+    size_t countFiles();
     
 public:
     CONTROL_FS();

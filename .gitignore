@@ -42,6 +42,9 @@ desktop.ini
 *~
 
 # Configuration with passwords
-/data/config/global.json
-/data/config/*.json
+/data/cfg/global.json
+/data/cfg/*.json
+/data/logs/*.log
+/data/web/
+/data/tmp/
 !/data/config_example.json

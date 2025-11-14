@@ -2,6 +2,9 @@
 #define CONTROL_MEASURE_H
 
 #include "ModuleBase.h"
+#include <Arduino.h>
+#include <SPIFFS.h>
+#include <FS.h>
 #include <queue>
 
 // Measure component types
@@ -22,6 +25,8 @@ private:
     MeasureType measureType;
     uint8_t pinSensor;
     uint8_t pinLED;
+    uint8_t pinTrig;
+    uint8_t pinEcho;
     uint32_t queueSpeed;
     uint32_t ledBlinkInterval;
     std::queue<MeasureData> measureQueue;
@@ -36,7 +41,7 @@ public:
                         ledBlinkInterval(500),
                         maxQueueSize(100) {
         priority = 50;
-        autostart = false;
+        autostart = true;
     }
     
     bool init() override {
@@ -50,6 +55,8 @@ public:
         // Configure pins
         if (pinSensor > 0) pinMode(pinSensor, INPUT);
         if (pinLED > 0) pinMode(pinLED, OUTPUT);
+        if (pinTrig > 0) pinMode(pinTrig, OUTPUT);
+        if (pinEcho > 0) pinMode(pinEcho, INPUT);
         
         return true;
     }
@@ -111,6 +118,8 @@ public:
             digitalWrite(pinLED, ledState ? HIGH : LOW);
             lastBlink = now;
         }
+
+        // LCD rendering handled by display modules
     }
     
     bool loadConfig() override {
@@ -136,6 +145,8 @@ public:
         measureType = (MeasureType)((*config)["type"] | 0);
         pinSensor = (*config)["pin_sensor"] | 0;
         pinLED = (*config)["pin_led"] | 0;
+        pinTrig = (*config)["pin_trig"] | 0;
+        pinEcho = (*config)["pin_echo"] | 0;
         queueSpeed = (*config)["queue_speed"] | 1000;
         ledBlinkInterval = (*config)["led_blink_interval"] | 500;
         maxQueueSize = (*config)["max_queue_size"] | 100;
@@ -172,10 +183,20 @@ public:
         MeasureData data;
         data.timestamp = millis();
         
-        // Read analog value (example)
-        int rawValue = analogRead(pinSensor);
-        data.value = (rawValue / 4095.0) * 3.3; // Convert to voltage
-        data.unit = "V";
+        if (measureType == MEASURE_DIBL1 && pinTrig > 0 && pinEcho > 0) {
+            digitalWrite(pinTrig, LOW);
+            delayMicroseconds(2);
+            digitalWrite(pinTrig, HIGH);
+            delayMicroseconds(10);
+            digitalWrite(pinTrig, LOW);
+            long duration = pulseIn(pinEcho, HIGH, 30000);
+            data.value = duration / 58.0;
+            data.unit = "cm";
+        } else {
+            int rawValue = analogRead(pinSensor);
+            data.value = (rawValue / 4095.0) * 3.3;
+            data.unit = "V";
+        }
         
         // Add to queue
         measureQueue.push(data);

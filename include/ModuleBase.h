@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "Config.h"
+#include "FreeRTOSTypes.h"
+#include "TaskBase.h"
+#include "QueueBase.h"
 
 // Module States
 enum ModuleState {
@@ -25,6 +28,13 @@ protected:
     bool debugMode;
     String version;
     String configPath;
+    bool critical;
+    TaskBase* taskBase;
+    QueueBase* queueBase;
+    TaskConfig taskCfg;
+    QueueConfig queueCfg;
+    bool useTask;
+    bool useQueue;
     
     // Module configuration
     DynamicJsonDocument* config;
@@ -40,6 +50,13 @@ public:
           version("1.0.0") {
         config = new DynamicJsonDocument(4096);
         configPath = String(MODULE_CONFIG_PATH) + moduleName + ".json";
+        critical = false;
+        taskBase = nullptr;
+        queueBase = nullptr;
+        useTask = true;
+        useQueue = false;
+        taskCfg = {String(name) + String("_TASK"), 4096, 3, nullptr, -1};
+        queueCfg = {8, sizeof(QueueMessage*), portMAX_DELAY, pdMS_TO_TICKS(100), false};
     }
     
     virtual ~ModuleBase() {
@@ -65,6 +82,13 @@ public:
     bool isTestMode() const { return testMode; }
     bool isDebugMode() const { return debugMode; }
     String getVersion() const { return version; }
+    bool isCritical() const { return critical; }
+    TaskBase* getTask() const { return taskBase; }
+    QueueBase* getQueue() const { return queueBase; }
+    TaskConfig getTaskConfig() const { return taskCfg; }
+    QueueConfig getQueueConfig() const { return queueCfg; }
+    bool getUseTask() const { return useTask; }
+    bool getUseQueue() const { return useQueue; }
     
     // Setters
     void setState(ModuleState s) { state = s; }
@@ -72,6 +96,13 @@ public:
     void setAutostart(bool a) { autostart = a; }
     void setTestMode(bool t) { testMode = t; }
     void setDebugMode(bool d) { debugMode = d; }
+    void setCritical(bool c) { critical = c; }
+    void attachTask(TaskBase* t) { taskBase = t; }
+    void attachQueue(QueueBase* q) { queueBase = q; }
+    void setTaskConfig(const TaskConfig& c) { taskCfg = c; }
+    void setQueueConfig(const QueueConfig& c) { queueCfg = c; }
+    void setUseTask(bool u) { useTask = u; }
+    void setUseQueue(bool u) { useQueue = u; }
     
     // Status
     bool isEnabled() const { return state != MODULE_DISABLED; }

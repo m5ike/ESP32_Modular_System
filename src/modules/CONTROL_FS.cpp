@@ -6,7 +6,13 @@ CONTROL_FS::CONTROL_FS() : Module("CONTROL_FS") {
     fsInitialized = false;
     priority = 100; // Highest priority
     autoStart = true;
-    version = "1.0.0";
+    version = "1.0.1";
+    TaskConfig tcfg = getTaskConfig();
+    tcfg.name = "CONTROL_FS_TASK";
+    tcfg.stackSize = 4096;
+    tcfg.priority = 3;
+    tcfg.core = 0;
+    setTaskConfig(tcfg);
 }
 
 CONTROL_FS::~CONTROL_FS() {
@@ -22,14 +28,26 @@ bool CONTROL_FS::init() {
         return false;
     }
     
+    initVersionAndPopulate();
+    
     if (!checkAndCreateDirectories()) {
         log("Failed to create directories", "ERROR");
         setState(MODULE_ERROR);
         return false;
     }
     
+    if (!validateConfigs()) {
+        log("Config validation failed", "ERROR");
+    }
+    
     fsInitialized = true;
     setState(MODULE_ENABLED);
+    
+    size_t files = countFiles();
+    size_t total = getTotalSpace();
+    size_t used = getUsedSpace();
+    size_t free = getFreeSpace();
+    log("FS summary: files=" + String(files) + ", total=" + String(total) + ", used=" + String(used) + ", free=" + String(free));
     log("File system initialized successfully");
     return true;
 }
@@ -93,6 +111,25 @@ bool CONTROL_FS::test() {
         return false;
     }
     
+    size_t total = getTotalSpace();
+    size_t used = getUsedSpace();
+    size_t free = getFreeSpace();
+    size_t filesRoot = countFiles();
+    log("FS capacity total=" + String(total) + ", used=" + String(used) + ", free=" + String(free));
+    log("FS files count=" + String(filesRoot));
+    std::vector<String> dirs = {"/", "/cfg", "/logs", "/web", "/config", "/data", "/tmp", "/test"};
+    for (const String& d : dirs) {
+        std::vector<String> files;
+        if (listDirectory(d, files)) {
+            for (const String& f : files) {
+                size_t sz = getFileSize(f);
+                String content = readFile(f);
+                String preview = content.substring(0, 20);
+                String kb = String(((float)sz) / 1024.0, 2);
+                log(getLogTimestamp() + " " + f + " " + kb + "kB " + preview);
+            }
+        }
+    }
     log("File system test passed");
     return true;
 }
@@ -122,18 +159,18 @@ bool CONTROL_FS::initFileSystem() {
         Serial.println("SPIFFS Mount Failed");
         return false;
     }
+    fsInitialized = true;
     
     Serial.println("SPIFFS mounted successfully");
-    Serial.printf("Total space: %d bytes\n", getTotalSpace());
-    Serial.printf("Used space: %d bytes\n", getUsedSpace());
-    Serial.printf("Free space: %d bytes\n", getFreeSpace());
+    Serial.printf("Total space: %d bytes\n", SPIFFS.totalBytes());
+    Serial.printf("Used space: %d bytes\n", SPIFFS.usedBytes());
+    Serial.printf("Free space: %d bytes\n", SPIFFS.totalBytes() - SPIFFS.usedBytes());
     
     return true;
 }
 
 bool CONTROL_FS::checkAndCreateDirectories() {
-    // Create necessary directories
-    std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test"};
+    std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test", "/cfg"};
     
     for (const String& dir : dirs) {
         if (!createDirectory(dir)) {
@@ -142,6 +179,36 @@ bool CONTROL_FS::checkAndCreateDirectories() {
     }
     
     return true;
+}
+
+bool CONTROL_FS::validateConfigs() {
+    DynamicJsonDocument doc(8192);
+    String cfg = readFile(CONFIG_FILE_PATH);
+    if (cfg.length() == 0) return false;
+    DeserializationError err = deserializeJson(doc, cfg);
+    if (err) return false;
+    return true;
+}
+
+bool CONTROL_FS::initVersionAndPopulate() {
+    String initVer = readFile("/.init");
+    if (initVer != version) {
+        SPIFFS.format();
+        for (size_t i = 0; i < FS_DEFAULTS_COUNT; i++) {
+            writeFile(FS_DEFAULTS[i].path, FS_DEFAULTS[i].content);
+        }
+        writeFile("/.init", version);
+    }
+    return true;
+}
+
+size_t CONTROL_FS::countFiles() {
+    size_t count = 0;
+    File root = SPIFFS.open("/");
+    if (!root) return 0;
+    File file = root.openNextFile();
+    while (file) { count++; file = root.openNextFile(); }
+    return count;
 }
 
 String CONTROL_FS::getLogTimestamp() {
@@ -271,7 +338,11 @@ bool CONTROL_FS::writeLog(const String& message, const char* level) {
     }
     
     String logEntry = getLogTimestamp() + " [" + String(level) + "] " + message + "\n";
-    return writeFile(LOG_FILE_PATH, logEntry, "a");
+    const char* path = LOG_FILE_PATH;
+    if (strcmp(level, "DEBUG") == 0) {
+        path = "/logs/debug.log";
+    }
+    return writeFile(path, logEntry, "a");
 }
 
 String CONTROL_FS::readLogs(size_t maxLines) {
@@ -310,7 +381,7 @@ size_t CONTROL_FS::getLogSize() {
 bool CONTROL_FS::loadGlobalConfig(DynamicJsonDocument& doc) {
     String configStr = readFile(CONFIG_FILE_PATH);
     if (configStr.length() == 0) {
-        log("Global config file not found, creating default", "WARN");
+        log(String("Global config file not found: ") + String(CONFIG_FILE_PATH), "WARN");
         return false;
     }
     

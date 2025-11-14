@@ -312,7 +312,7 @@ enum ModuleState {
 
 ### Globální konfigurace
 
-Umístění: `/config/global.json`
+Umístění: `/cfg/global.json`
 
 ```json
 {

@@ -1,8 +1,0 @@
-{
-  "port": 80,
-  "enable_cors": true,
-  "max_clients": 4,
-  "auth_required": false,
-  "username": "admin",
-  "password": "admin"
-}

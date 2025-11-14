@@ -1,6 +1,0 @@
-{
-  "baud": 115200,
-  "echo": true,
-  "prompt": "> ",
-  "history_size": 10
-}

@@ -5,6 +5,9 @@
 #include <ArduinoJson.h>
 #include <vector>
 #include <functional>
+#include "FreeRTOSTypes.h"
+#include "TaskBase.h"
+#include "QueueBase.h"
 
 // Module states
 enum ModuleState {
@@ -24,6 +27,13 @@ protected:
     bool debugEnabled;
     String version;
     DynamicJsonDocument* config;
+    bool critical;
+    TaskBase* taskBase;
+    QueueBase* queueBase;
+    TaskConfig taskCfg;
+    QueueConfig queueCfg;
+    bool useTask;
+    bool useQueue;
     
 public:
     Module(const char* name);
@@ -48,12 +58,26 @@ public:
     bool isAutoStart() const { return autoStart; }
     bool isDebugEnabled() const { return debugEnabled; }
     String getVersion() const { return version; }
+    bool isCritical() const { return critical; }
+    TaskBase* getTask() const { return taskBase; }
+    QueueBase* getQueue() const { return queueBase; }
+    TaskConfig getTaskConfig() const { return taskCfg; }
+    QueueConfig getQueueConfig() const { return queueCfg; }
+    bool getUseTask() const { return useTask; }
+    bool getUseQueue() const { return useQueue; }
     
     // Setters
     void setState(ModuleState s) { state = s; }
     void setPriority(int p) { priority = p; }
     void setAutoStart(bool a) { autoStart = a; }
     void setDebugEnabled(bool d) { debugEnabled = d; }
+    void setCritical(bool c) { critical = c; }
+    void attachTask(TaskBase* t) { taskBase = t; }
+    void attachQueue(QueueBase* q) { queueBase = q; }
+    void setTaskConfig(const TaskConfig& c) { taskCfg = c; }
+    void setQueueConfig(const QueueConfig& c) { queueCfg = c; }
+    void setUseTask(bool u) { useTask = u; }
+    void setUseQueue(bool u) { useQueue = u; }
     
     // Logging
     void log(const String& message, const char* level = "INFO");
@@ -64,6 +88,8 @@ class ModuleManager {
 private:
     std::vector<Module*> modules;
     static ModuleManager* instance;
+    std::vector<String> lcdLogs;
+    bool wifiConnectedLast;
     
     ModuleManager();
     
@@ -78,13 +104,18 @@ public:
     bool startModules();
     bool stopModules();
     bool updateModules();
+    bool startModuleTask(Module* mod);
+    bool ensureModuleQueue(Module* mod);
     
     bool loadGlobalConfig();
     bool saveGlobalConfig();
+    bool applyConfig(DynamicJsonDocument& doc);
     
     std::vector<Module*> getModules() { return modules; }
     
     void sortModulesByPriority();
+    void appendLCDLog(const String& line);
+    void renderLoadingStep(const String& op, int percent);
 };
 
 #endif

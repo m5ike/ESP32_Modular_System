@@ -7,7 +7,17 @@ CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     rotation = 0;
     priority = 90; // High priority
     autoStart = true;
-    version = "1.0.0";
+    version = "1.0.1";
+    setUseQueue(true);
+    TaskConfig tcfg = getTaskConfig();
+    tcfg.name = "CONTROL_LCD_TASK";
+    tcfg.stackSize = 4096;
+    tcfg.priority = 3;
+    tcfg.core = 1;
+    setTaskConfig(tcfg);
+    QueueConfig qcfg = getQueueConfig();
+    qcfg.length = 16;
+    setQueueConfig(qcfg);
 }
 
 CONTROL_LCD::~CONTROL_LCD() {
@@ -33,8 +43,8 @@ bool CONTROL_LCD::init() {
     
     // Initialize display
     tft->init();
+    tft->setSwapBytes(true);
     tft->setRotation(rotation);
-//    tft->fillScreen(TFT_BLACK);
     tft->fillScreen(TFT_WHITE);
     
     // Set default brightness
@@ -121,6 +131,16 @@ DynamicJsonDocument CONTROL_LCD::getStatus() {
     return doc;
 }
 
+bool CONTROL_LCD::loadConfig(DynamicJsonDocument& doc) {
+    Module::loadConfig(doc);
+    if (doc.containsKey("CONTROL_LCD")) {
+        JsonObject lcd = doc["CONTROL_LCD"];
+        if (lcd.containsKey("brightness")) brightness = lcd["brightness"];
+        if (lcd.containsKey("rotation")) { rotation = lcd["rotation"]; if (tft) tft->setRotation(rotation); }
+    }
+    return true;
+}
+
 void CONTROL_LCD::setupBacklight() {
     pinMode(LCD_BL, OUTPUT);
     digitalWrite(LCD_BL, HIGH);
@@ -163,7 +183,7 @@ void CONTROL_LCD::drawText(int16_t x, int16_t y, const String& text, uint16_t co
     if (!tft) return;
     
     tft->setTextColor(color);
-    tft->setTextFont(font);
+    tft->setTextSize(1);
     tft->setCursor(x, y);
     tft->print(text);
 }
@@ -172,7 +192,7 @@ void CONTROL_LCD::drawCenteredText(int16_t y, const String& text, uint16_t color
     if (!tft) return;
     
     tft->setTextColor(color);
-    tft->setTextFont(font);
+    tft->setTextSize(2);
     tft->setTextDatum(MC_DATUM); // Middle center
     tft->drawString(text, LCD_WIDTH / 2, y);
     tft->setTextDatum(TL_DATUM); // Reset to top left

@@ -8,6 +8,7 @@
 #include "modules/CONTROL_WIFI.h"
 #include "modules/CONTROL_SERIAL.h"
 #include "modules/CONTROL_WEB.h"
+#include "modules/CONTROL_RADAR.h"
 
 // Global module manager
 ModuleManager* moduleManager = nullptr;
@@ -18,6 +19,7 @@ CONTROL_LCD* lcdModule = nullptr;
 CONTROL_WIFI* wifiModule = nullptr;
 CONTROL_SERIAL* serialModule = nullptr;
 CONTROL_WEB* webModule = nullptr;
+CONTROL_RADAR* radarModule = nullptr;
 
 void setup() {
     // Initialize Serial first
@@ -59,6 +61,9 @@ void setup() {
     // Priority 75 - Web Server
     webModule = new CONTROL_WEB();
     moduleManager->registerModule(webModule);
+    // Priority 50 - Ultrasonic Radar
+    radarModule = new CONTROL_RADAR();
+    moduleManager->registerModule(radarModule);
     
     DEBUG_I("Registered %d modules", moduleManager->getModules().size());
     

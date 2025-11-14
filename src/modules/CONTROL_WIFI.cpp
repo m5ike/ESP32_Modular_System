@@ -24,6 +24,12 @@ CONTROL_WIFI::CONTROL_WIFI() : Module("CONTROL_WIFI") {
     priority = 85;
     autoStart = true;
     version = "1.0.0";
+    TaskConfig tcfg = getTaskConfig();
+    tcfg.name = "CONTROL_WIFI_TASK";
+    tcfg.stackSize = 4096;
+    tcfg.priority = 4;
+    tcfg.core = 0;
+    setTaskConfig(tcfg);
 }
 
 CONTROL_WIFI::~CONTROL_WIFI() {

@@ -8,6 +8,16 @@ CONTROL_SERIAL::CONTROL_SERIAL() : Module("CONTROL_SERIAL") {
     priority = 80;
     autoStart = true;
     version = "1.0.0";
+    setUseQueue(true);
+    TaskConfig tcfg = getTaskConfig();
+    tcfg.name = "CONTROL_SERIAL_TASK";
+    tcfg.stackSize = 4096;
+    tcfg.priority = 2;
+    tcfg.core = 1;
+    setTaskConfig(tcfg);
+    QueueConfig qcfg = getQueueConfig();
+    qcfg.length = 16;
+    setQueueConfig(qcfg);
 }
 
 CONTROL_SERIAL::~CONTROL_SERIAL() {
@@ -154,6 +164,90 @@ void CONTROL_SERIAL::processCommand(const String& command) {
         moduleName.trim();
         cmdModuleConfig(moduleName);
     }
+    else if (cmd.startsWith("set ")) {
+        int sp1 = command.indexOf(' ');
+        int sp2 = command.indexOf(' ', sp1 + 1);
+        int sp3 = command.indexOf(' ', sp2 + 1);
+        if (sp1 > 0 && sp2 > sp1 && sp3 > sp2) {
+            String moduleName = command.substring(sp1 + 1, sp2);
+            String key = command.substring(sp2 + 1, sp3);
+            String value = command.substring(sp3 + 1);
+            Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
+            if (fsModule) {
+                CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
+                DynamicJsonDocument doc(8192);
+                if (fs->loadGlobalConfig(doc)) {
+                    JsonObject mod = doc[moduleName];
+                    mod[key] = value;
+                    fs->saveGlobalConfig(doc);
+                    ModuleManager::getInstance()->loadGlobalConfig();
+                    Serial.println("Config updated");
+                } else {
+                    Serial.println("Failed to load config");
+                }
+            } else {
+                Serial.println("FS module not available");
+            }
+        } else {
+            Serial.println("Usage: set <module> <key> <value>");
+        }
+    }
+    else if (cmd.startsWith("setjson ")) {
+        int sp1 = command.indexOf(' ');
+        int sp2 = command.indexOf(' ', sp1 + 1);
+        if (sp1 > 0 && sp2 > sp1) {
+            String moduleName = command.substring(sp1 + 1, sp2);
+            String jsonStr = command.substring(sp2 + 1);
+            Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
+            if (fsModule) {
+                CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
+                DynamicJsonDocument doc(8192);
+                if (fs->loadGlobalConfig(doc)) {
+                    DynamicJsonDocument modDoc(2048);
+                    DeserializationError err = deserializeJson(modDoc, jsonStr.c_str());
+                    if (!err) {
+                        doc[moduleName] = modDoc.as<JsonObject>();
+                        fs->saveGlobalConfig(doc);
+                        ModuleManager::getInstance()->loadGlobalConfig();
+                        Serial.println("Module JSON updated");
+                    } else {
+                        Serial.println("JSON parse error");
+                    }
+                } else {
+                    Serial.println("Failed to load config");
+                }
+            } else {
+                Serial.println("FS module not available");
+            }
+        } else {
+            Serial.println("Usage: setjson <module> <json>");
+        }
+    }
+    else if (cmd.startsWith("enable ")) {
+        String moduleName = command.substring(7); moduleName.trim();
+        Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+        if (mod) { mod->setState(MODULE_ENABLED); Serial.println("Enabled"); }
+        else { Serial.println("Module not found"); }
+    }
+    else if (cmd.startsWith("disable ")) {
+        String moduleName = command.substring(8); moduleName.trim();
+        Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+        if (mod) { mod->setState(MODULE_DISABLED); Serial.println("Disabled"); }
+        else { Serial.println("Module not found"); }
+    }
+    else if (cmd.startsWith("autostart ")) {
+        int sp1 = command.indexOf(' ');
+        int sp2 = command.indexOf(' ', sp1 + 1);
+        if (sp1 > 0 && sp2 > sp1) {
+            String moduleName = command.substring(sp1 + 1, sp2);
+            String onoff = command.substring(sp2 + 1);
+            Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+            if (mod) { mod->setAutoStart(onoff == "on"); Serial.println("Autostart updated"); }
+            else { Serial.println("Module not found"); }
+        } else {
+            Serial.println("Usage: autostart <module> <on|off>");
+        }
+    }
     else if (cmd.startsWith("logs")) {
         int lines = 20;
         if (cmd.length() > 5) {
@@ -188,6 +282,11 @@ void CONTROL_SERIAL::printHelp() {
     Serial.println("stop <name>       - Stop module");
     Serial.println("test <name>       - Test module");
     Serial.println("config <name>     - Show module config");
+    Serial.println("set <m> <k> <v>   - Set module key to value");
+    Serial.println("setjson <m> <js>  - Replace module JSON");
+    Serial.println("enable <name>     - Enable module");
+    Serial.println("disable <name>    - Disable module");
+    Serial.println("autostart <m> on|off - Set autostart");
     Serial.println("logs [n]          - Show last n log lines (default: 20)");
     Serial.println("clearlogs         - Clear all logs");
     Serial.println("restart           - Restart system");

@@ -27,6 +27,10 @@ private:
     unsigned long lastUpdate;
     unsigned long lastBlink;
     bool ledState;
+    long lastDistance;
+    unsigned long lastMeasureMs;
+    float lastSpeed;
+    int movementDir;
     
     void setupPins();
     void updateBlink();
@@ -42,10 +46,10 @@ public:
     bool stop() override;
     bool update() override;
     bool test() override;
-    JsonDocument getStatus() override;
+    DynamicJsonDocument getStatus() override;
     
     // Configuration
-    bool loadConfig(JsonDocument& doc) override;
+    bool loadConfig(DynamicJsonDocument& doc) override;
     bool setComponent(uint8_t type, uint8_t trig, uint8_t echo, uint8_t led);
     bool setSpeed(uint16_t speed);
     bool setStep(uint16_t step);
