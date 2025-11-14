@@ -17,13 +17,22 @@
 #define LCD_HEIGHT  320
 
 // Serial Configuration
+<<<<<<< HEAD
 #define SERIAL_BAUD 115200
+=======
+#define SERIAL_BAUD 460800
+>>>>>>> de1429e (commit)
 
 // File System Configuration
 #define FS_MAX_SIZE         2097152  // 2 MB
 #define LOG_MAX_SIZE        1048576  // 1 MB
+<<<<<<< HEAD
 #define CONFIG_PATH         "/config/global.json"
 #define MODULE_CONFIG_PATH  "/config/modules/"
+=======
+#define CONFIG_PATH         "/cfg/global.json"
+#define MODULE_CONFIG_PATH  "/cfg/"
+>>>>>>> de1429e (commit)
 #define LOG_PATH            "/logs/"
 #define WEB_PATH            "/web/"
 

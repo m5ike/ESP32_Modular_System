@@ -81,6 +81,10 @@ public:
     
     bool loadGlobalConfig();
     bool saveGlobalConfig();
+<<<<<<< HEAD
+=======
+    bool applyConfig(DynamicJsonDocument& doc);
+>>>>>>> de1429e (commit)
     
     std::vector<Module*> getModules() { return modules; }
     

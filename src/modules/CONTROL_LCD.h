@@ -36,6 +36,10 @@ public:
     bool update() override;
     bool test() override;
     DynamicJsonDocument getStatus() override;
+<<<<<<< HEAD
+=======
+    bool loadConfig(DynamicJsonDocument& doc) override;
+>>>>>>> de1429e (commit)
     
     // LCD control
     TFT_eSPI* getDisplay() { return tft; }

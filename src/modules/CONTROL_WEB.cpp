@@ -166,8 +166,13 @@ void CONTROL_WEB::setupAPIRoutes() {
         this->handleAPIModules(request);
     });
     
+<<<<<<< HEAD
     // API Module control (start/stop/restart)
     server->on("/api/module/control", HTTP_POST, [this](AsyncWebServerRequest *request) {
+=======
+    // API Module control (start/stop/test)
+    server->on("/api/module/control", HTTP_GET, [this](AsyncWebServerRequest *request) {
+>>>>>>> de1429e (commit)
         this->handleAPIModuleControl(request);
     });
     
@@ -175,6 +180,15 @@ void CONTROL_WEB::setupAPIRoutes() {
     server->on("/api/module/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
         this->handleAPIModuleConfig(request);
     });
+<<<<<<< HEAD
+=======
+    server->on("/api/module/set", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleAPIModuleSet(request);
+    });
+    server->on("/api/module/autostart", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        this->handleAPIModuleAutostart(request);
+    });
+>>>>>>> de1429e (commit)
     
     // API Logs
     server->on("/api/logs", HTTP_GET, [this](AsyncWebServerRequest *request) {
@@ -243,11 +257,22 @@ void CONTROL_WEB::handleControls(AsyncWebServerRequest *request) {
         content += "<p>State: " + String(mod->getState() == MODULE_ENABLED ? "Enabled" : "Disabled") + "</p>";
         content += "<button onclick=\"controlModule('" + mod->getName() + "', 'start')\">Start</button> ";
         content += "<button onclick=\"controlModule('" + mod->getName() + "', 'stop')\">Stop</button> ";
+<<<<<<< HEAD
         content += "<button onclick=\"controlModule('" + mod->getName() + "', 'test')\">Test</button>";
+=======
+        content += "<button onclick=\"controlModule('" + mod->getName() + "', 'test')\">Test</button> ";
+        content += "<button onclick=\"toggleEnable('" + mod->getName() + "', 'on')\">Enable</button> ";
+        content += "<button onclick=\"toggleEnable('" + mod->getName() + "', 'off')\">Disable</button> ";
+        content += "<span>Autostart: ";
+        content += "<button onclick=\"setAutostart('" + mod->getName() + "', 'on')\">On</button>";
+        content += "<button onclick=\"setAutostart('" + mod->getName() + "', 'off')\">Off</button></span>";
+        content += "<div><button onclick=\"showLogs('" + mod->getName() + "')\">Show Logs</button><pre id='logs_" + mod->getName() + "'></pre></div>";
+>>>>>>> de1429e (commit)
         content += "</div>";
     }
     
     content += "<script>";
+<<<<<<< HEAD
     content += "function controlModule(name, action) {";
     content += "  fetch('/api/module/control', {";
     content += "    method: 'POST',";
@@ -258,6 +283,12 @@ void CONTROL_WEB::handleControls(AsyncWebServerRequest *request) {
     content += "    location.reload();";
     content += "  });";
     content += "}";
+=======
+    content += "function controlModule(name, action){fetch('/api/module/control?module='+name+'&action='+action).then(r=>r.json()).then(d=>{alert(JSON.stringify(d));location.reload();});}";
+    content += "function setAutostart(name,val){fetch('/api/module/autostart?module='+name+'&value='+val).then(r=>r.text()).then(t=>{alert(t);location.reload();});}";
+    content += "function toggleEnable(name,val){if(val==='on'){fetch('/api/module/control?module='+name+'&action=start').then(()=>location.reload());}else{fetch('/api/module/control?module='+name+'&action=stop').then(()=>location.reload());}}";
+    content += "function showLogs(name){fetch('/api/logs?module='+name).then(r=>r.json()).then(d=>{document.getElementById('logs_'+name).textContent=d.logs;});}";
+>>>>>>> de1429e (commit)
     content += "</script>";
     
     request->send(200, "text/html", buildHTML("Controls", content));
@@ -267,6 +298,23 @@ void CONTROL_WEB::handleConfig(AsyncWebServerRequest *request) {
     String content = "<h1>Configuration</h1>";
     content += "<a href='/'>Back to Home</a><hr>";
     content += getConfigHTML();
+<<<<<<< HEAD
+=======
+    content += "<hr>";
+    content += "<h2>Edit Module</h2>";
+    content += "<label>Module: <input id='mod' value='CONTROL_LCD'></label><br>";
+    content += "<label>Key: <input id='key' value='brightness'></label><br>";
+    content += "<label>Value: <input id='val' value='255'></label><br>";
+    content += "<button onclick=saveKey()>Save Key</button>";
+    content += "<h3>JSON</h3>";
+    content += "<textarea id='json' rows='10' cols='60'>{\"brightness\":255,\"rotation\":0}</textarea><br>";
+    content += "<button onclick=saveJson()>Save JSON</button>";
+    content += "<h2>Autostart</h2>";
+    content += "<label>Module: <input id='amod' value='CONTROL_LCD'></label>";
+    content += "<button onclick=autostart('on')>On</button>";
+    content += "<button onclick=autostart('off')>Off</button>";
+    content += "<script>function saveKey(){var m=document.getElementById('mod').value;var k=document.getElementById('key').value;var v=document.getElementById('val').value;fetch('/api/module/set?module='+m+'&key='+k+'&value='+encodeURIComponent(v)).then(r=>r.text()).then(t=>alert(t));}function saveJson(){var m=document.getElementById('mod').value;var j=document.getElementById('json').value;fetch('/api/module/set?module='+m+'&json='+encodeURIComponent(j)).then(r=>r.text()).then(t=>alert(t));}function autostart(s){var m=document.getElementById('amod').value;fetch('/api/module/autostart?module='+m+'&value='+s).then(r=>r.text()).then(t=>alert(t));}</script>";
+>>>>>>> de1429e (commit)
     
     request->send(200, "text/html", buildHTML("Configuration", content));
 }
@@ -315,8 +363,25 @@ void CONTROL_WEB::handleAPIModules(AsyncWebServerRequest *request) {
 }
 
 void CONTROL_WEB::handleAPIModuleControl(AsyncWebServerRequest *request) {
+<<<<<<< HEAD
     // This would be implemented with AsyncWebServer body parser
     request->send(200, "application/json", "{\"message\":\"Module control endpoint\"}");
+=======
+    if (!request->hasParam("module") || !request->hasParam("action")) {
+        request->send(400, "application/json", "{\"error\":\"Missing params\"}");
+        return;
+    }
+    String moduleName = request->getParam("module")->value();
+    String action = request->getParam("action")->value();
+    Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+    if (!mod) { request->send(404, "application/json", "{\"error\":\"Module not found\"}"); return; }
+    bool ok = false;
+    if (action == "start") ok = mod->start();
+    else if (action == "stop") ok = mod->stop();
+    else if (action == "test") ok = mod->test();
+    else { request->send(400, "application/json", "{\"error\":\"Invalid action\"}"); return; }
+    request->send(200, "application/json", ok ? "{\"result\":\"OK\"}" : "{\"result\":\"FAIL\"}");
+>>>>>>> de1429e (commit)
 }
 
 void CONTROL_WEB::handleAPIModuleConfig(AsyncWebServerRequest *request) {
@@ -333,12 +398,75 @@ void CONTROL_WEB::handleAPIModuleConfig(AsyncWebServerRequest *request) {
     }
 }
 
+<<<<<<< HEAD
+=======
+void CONTROL_WEB::handleAPIModuleSet(AsyncWebServerRequest *request) {
+    String moduleName = request->getParam("module")->value();
+    Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
+    if (!fsModule) { request->send(503, "text/plain", "FS not available"); return; }
+    CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
+    DynamicJsonDocument doc(8192);
+    if (!fs->loadGlobalConfig(doc)) { request->send(500, "text/plain", "Load failed"); return; }
+    if (request->hasParam("json")) {
+        String jsonStr = request->getParam("json")->value();
+        DynamicJsonDocument modDoc(2048);
+        DeserializationError err = deserializeJson(modDoc, jsonStr.c_str());
+        if (err) { request->send(400, "text/plain", "JSON error"); return; }
+        doc[moduleName] = modDoc.as<JsonObject>();
+    } else if (request->hasParam("key") && request->hasParam("value")) {
+        String key = request->getParam("key")->value();
+        String value = request->getParam("value")->value();
+        JsonObject mod = doc[moduleName];
+        mod[key] = value;
+    } else {
+        request->send(400, "text/plain", "Missing params");
+        return;
+    }
+    fs->saveGlobalConfig(doc);
+    ModuleManager::getInstance()->loadGlobalConfig();
+    request->send(200, "text/plain", "OK");
+}
+
+void CONTROL_WEB::handleAPIModuleAutostart(AsyncWebServerRequest *request) {
+    String moduleName = request->getParam("module")->value();
+    String val = request->getParam("value")->value();
+    Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+    if (!mod) { request->send(404, "text/plain", "Module not found"); return; }
+    mod->setAutoStart(val == "on");
+    request->send(200, "text/plain", "OK");
+}
+
+>>>>>>> de1429e (commit)
 void CONTROL_WEB::handleAPILogs(AsyncWebServerRequest *request) {
     Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
     
     if (fsModule) {
         CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
+<<<<<<< HEAD
         String logs = fs->readLogs(100);
+=======
+        String logs;
+        if (request->hasParam("level") && request->getParam("level")->value() == "debug") {
+            logs = fs->readFile("/logs/debug.log");
+        } else {
+            logs = fs->readLogs(100);
+        }
+        if (request->hasParam("module")) {
+            String name = request->getParam("module")->value();
+            // naive filter: include lines containing "][<name>]"
+            String filtered = "";
+            int start = 0;
+            while (true) {
+                int nl = logs.indexOf('\n', start);
+                String line = nl >= 0 ? logs.substring(start, nl + 1) : logs.substring(start);
+                if (line.length() == 0) break;
+                if (line.indexOf("][" + name + "]") >= 0) filtered += line;
+                if (nl < 0) break;
+                start = nl + 1;
+            }
+            logs = filtered;
+        }
+>>>>>>> de1429e (commit)
         
         DynamicJsonDocument doc(2048);
         doc["logs"] = logs;

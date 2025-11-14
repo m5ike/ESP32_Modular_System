@@ -50,7 +50,12 @@ void Module::log(const String& message, const char* level) {
     // Also log to file system if CONTROL_FS is available
     Module* fsModule = ModuleManager::getInstance()->getModule("CONTROL_FS");
     if (fsModule && fsModule->getState() == MODULE_ENABLED) {
+<<<<<<< HEAD
         // TODO: Call FS module logging function
+=======
+        CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsModule);
+        fs->writeLog(logMsg, level);
+>>>>>>> de1429e (commit)
     }
 }
 
@@ -159,11 +164,38 @@ bool ModuleManager::updateModules() {
 }
 
 bool ModuleManager::loadGlobalConfig() {
+<<<<<<< HEAD
     // This will be implemented after CONTROL_FS is created
     return true;
 }
 
 bool ModuleManager::saveGlobalConfig() {
     // This will be implemented after CONTROL_FS is created
+=======
+    Module* fsMod = getModule("CONTROL_FS");
+    if (!fsMod) return false;
+    CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsMod);
+    DynamicJsonDocument doc(8192);
+    if (!fs->loadGlobalConfig(doc)) return false;
+    return applyConfig(doc);
+}
+
+bool ModuleManager::saveGlobalConfig() {
+    Module* fsMod = getModule("CONTROL_FS");
+    if (!fsMod) return false;
+    CONTROL_FS* fs = static_cast<CONTROL_FS*>(fsMod);
+    DynamicJsonDocument doc(8192);
+    for (Module* mod : modules) {
+        DynamicJsonDocument status = mod->getStatus();
+        doc[mod->getName()] = status;
+    }
+    return fs->saveGlobalConfig(doc);
+}
+
+bool ModuleManager::applyConfig(DynamicJsonDocument& doc) {
+    for (Module* mod : modules) {
+        mod->loadConfig(doc);
+    }
+>>>>>>> de1429e (commit)
     return true;
 }

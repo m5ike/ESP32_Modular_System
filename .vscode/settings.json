@@ -1,0 +1,10 @@
+{
+    "idf.pythonInstallPath": "/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/bin/python3",
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "bitset": "cpp",
+        "fstream": "cpp",
+        "queue": "cpp",
+        "new": "cpp"
+    }
+}

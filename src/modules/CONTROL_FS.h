@@ -4,11 +4,19 @@
 #include "../ModuleManager.h"
 #include <SPIFFS.h>
 #include <FS.h>
+<<<<<<< HEAD
+=======
+#include "FSDefaults.h"
+>>>>>>> de1429e (commit)
 
 #define FS_MAX_SIZE_DEFAULT 2097152  // 2 MB
 #define LOG_MAX_SIZE_DEFAULT 1048576 // 1 MB
 #define LOG_FILE_PATH "/logs/system.log"
+<<<<<<< HEAD
 #define CONFIG_FILE_PATH "/config/global.json"
+=======
+#define CONFIG_FILE_PATH "/cfg/global.json"
+>>>>>>> de1429e (commit)
 
 class CONTROL_FS : public Module {
 private:
@@ -19,6 +27,12 @@ private:
     bool initFileSystem();
     bool checkAndCreateDirectories();
     String getLogTimestamp();
+<<<<<<< HEAD
+=======
+    bool validateConfigs();
+    bool initVersionAndPopulate();
+    size_t countFiles();
+>>>>>>> de1429e (commit)
     
 public:
     CONTROL_FS();

@@ -6,7 +6,11 @@ CONTROL_FS::CONTROL_FS() : Module("CONTROL_FS") {
     fsInitialized = false;
     priority = 100; // Highest priority
     autoStart = true;
+<<<<<<< HEAD
     version = "1.0.0";
+=======
+    version = "1.0.1";
+>>>>>>> de1429e (commit)
 }
 
 CONTROL_FS::~CONTROL_FS() {
@@ -22,14 +26,34 @@ bool CONTROL_FS::init() {
         return false;
     }
     
+<<<<<<< HEAD
+=======
+    initVersionAndPopulate();
+    
+>>>>>>> de1429e (commit)
     if (!checkAndCreateDirectories()) {
         log("Failed to create directories", "ERROR");
         setState(MODULE_ERROR);
         return false;
     }
     
+<<<<<<< HEAD
     fsInitialized = true;
     setState(MODULE_ENABLED);
+=======
+    if (!validateConfigs()) {
+        log("Config validation failed", "ERROR");
+    }
+    
+    fsInitialized = true;
+    setState(MODULE_ENABLED);
+    
+    size_t files = countFiles();
+    size_t total = getTotalSpace();
+    size_t used = getUsedSpace();
+    size_t free = getFreeSpace();
+    log("FS summary: files=" + String(files) + ", total=" + String(total) + ", used=" + String(used) + ", free=" + String(free));
+>>>>>>> de1429e (commit)
     log("File system initialized successfully");
     return true;
 }
@@ -122,18 +146,31 @@ bool CONTROL_FS::initFileSystem() {
         Serial.println("SPIFFS Mount Failed");
         return false;
     }
+<<<<<<< HEAD
     
     Serial.println("SPIFFS mounted successfully");
     Serial.printf("Total space: %d bytes\n", getTotalSpace());
     Serial.printf("Used space: %d bytes\n", getUsedSpace());
     Serial.printf("Free space: %d bytes\n", getFreeSpace());
+=======
+    fsInitialized = true;
+    
+    Serial.println("SPIFFS mounted successfully");
+    Serial.printf("Total space: %d bytes\n", SPIFFS.totalBytes());
+    Serial.printf("Used space: %d bytes\n", SPIFFS.usedBytes());
+    Serial.printf("Free space: %d bytes\n", SPIFFS.totalBytes() - SPIFFS.usedBytes());
+>>>>>>> de1429e (commit)
     
     return true;
 }
 
 bool CONTROL_FS::checkAndCreateDirectories() {
+<<<<<<< HEAD
     // Create necessary directories
     std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test"};
+=======
+    std::vector<String> dirs = {"/config", "/logs", "/web", "/data", "/tmp", "/test", "/cfg"};
+>>>>>>> de1429e (commit)
     
     for (const String& dir : dirs) {
         if (!createDirectory(dir)) {
@@ -144,6 +181,39 @@ bool CONTROL_FS::checkAndCreateDirectories() {
     return true;
 }
 
+<<<<<<< HEAD
+=======
+bool CONTROL_FS::validateConfigs() {
+    DynamicJsonDocument doc(8192);
+    String cfg = readFile(CONFIG_FILE_PATH);
+    if (cfg.length() == 0) return false;
+    DeserializationError err = deserializeJson(doc, cfg);
+    if (err) return false;
+    return true;
+}
+
+bool CONTROL_FS::initVersionAndPopulate() {
+    String initVer = readFile("/.init");
+    if (initVer != version) {
+        SPIFFS.format();
+        for (size_t i = 0; i < FS_DEFAULTS_COUNT; i++) {
+            writeFile(FS_DEFAULTS[i].path, FS_DEFAULTS[i].content);
+        }
+        writeFile("/.init", version);
+    }
+    return true;
+}
+
+size_t CONTROL_FS::countFiles() {
+    size_t count = 0;
+    File root = SPIFFS.open("/");
+    if (!root) return 0;
+    File file = root.openNextFile();
+    while (file) { count++; file = root.openNextFile(); }
+    return count;
+}
+
+>>>>>>> de1429e (commit)
 String CONTROL_FS::getLogTimestamp() {
     unsigned long ms = millis();
     unsigned long seconds = ms / 1000;
@@ -271,7 +341,15 @@ bool CONTROL_FS::writeLog(const String& message, const char* level) {
     }
     
     String logEntry = getLogTimestamp() + " [" + String(level) + "] " + message + "\n";
+<<<<<<< HEAD
     return writeFile(LOG_FILE_PATH, logEntry, "a");
+=======
+    const char* path = LOG_FILE_PATH;
+    if (strcmp(level, "DEBUG") == 0) {
+        path = "/logs/debug.log";
+    }
+    return writeFile(path, logEntry, "a");
+>>>>>>> de1429e (commit)
 }
 
 String CONTROL_FS::readLogs(size_t maxLines) {

@@ -36,7 +36,11 @@ public:
                         ledBlinkInterval(500),
                         maxQueueSize(100) {
         priority = 50;
+<<<<<<< HEAD
         autostart = false;
+=======
+        autostart = true;
+>>>>>>> de1429e (commit)
     }
     
     bool init() override {

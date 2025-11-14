@@ -3,11 +3,19 @@
 CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     tft = nullptr;
     lcdInitialized = false;
+<<<<<<< HEAD
     brightness = 255;
     rotation = 0;
     priority = 90; // High priority
     autoStart = true;
     version = "1.0.0";
+=======
+    brightness = 120;
+    rotation = 90;
+    priority = 90; // High priority
+    autoStart = true;
+    version = "1.0.1";
+>>>>>>> de1429e (commit)
 }
 
 CONTROL_LCD::~CONTROL_LCD() {
@@ -33,8 +41,13 @@ bool CONTROL_LCD::init() {
     
     // Initialize display
     tft->init();
+<<<<<<< HEAD
     tft->setRotation(rotation);
 //    tft->fillScreen(TFT_BLACK);
+=======
+    tft->setSwapBytes(true);
+    tft->setRotation(rotation);
+>>>>>>> de1429e (commit)
     tft->fillScreen(TFT_WHITE);
     
     // Set default brightness
@@ -121,6 +134,19 @@ DynamicJsonDocument CONTROL_LCD::getStatus() {
     return doc;
 }
 
+<<<<<<< HEAD
+=======
+bool CONTROL_LCD::loadConfig(DynamicJsonDocument& doc) {
+    Module::loadConfig(doc);
+    if (doc.containsKey("CONTROL_LCD")) {
+        JsonObject lcd = doc["CONTROL_LCD"];
+        if (lcd.containsKey("brightness")) brightness = lcd["brightness"];
+        if (lcd.containsKey("rotation")) { rotation = lcd["rotation"]; if (tft) tft->setRotation(rotation); }
+    }
+    return true;
+}
+
+>>>>>>> de1429e (commit)
 void CONTROL_LCD::setupBacklight() {
     pinMode(LCD_BL, OUTPUT);
     digitalWrite(LCD_BL, HIGH);
@@ -163,7 +189,11 @@ void CONTROL_LCD::drawText(int16_t x, int16_t y, const String& text, uint16_t co
     if (!tft) return;
     
     tft->setTextColor(color);
+<<<<<<< HEAD
     tft->setTextFont(font);
+=======
+    tft->setTextSize(1);
+>>>>>>> de1429e (commit)
     tft->setCursor(x, y);
     tft->print(text);
 }
@@ -172,7 +202,11 @@ void CONTROL_LCD::drawCenteredText(int16_t y, const String& text, uint16_t color
     if (!tft) return;
     
     tft->setTextColor(color);
+<<<<<<< HEAD
     tft->setTextFont(font);
+=======
+    tft->setTextSize(2);
+>>>>>>> de1429e (commit)
     tft->setTextDatum(MC_DATUM); // Middle center
     tft->drawString(text, LCD_WIDTH / 2, y);
     tft->setTextDatum(TL_DATUM); // Reset to top left
