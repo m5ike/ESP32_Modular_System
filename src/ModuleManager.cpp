@@ -292,20 +292,13 @@ void ModuleManager::appendLCDLog(const String& line) {
     while (lcdLogs.size() > 5) lcdLogs.erase(lcdLogs.begin());
     Module* lcdMod = getModule("CONTROL_LCD");
     if (!lcdMod) return;
-    CONTROL_LCD* lcd = static_cast<CONTROL_LCD*>(lcdMod);
-    if (!lcd || lcd->getState() != MODULE_ENABLED) return;
-    TFT_eSPI* tft = lcd->getDisplay();
-    if (!tft) return;
-    int16_t yStart = LCD_HEIGHT - 70;
-    tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
-    tft->setTextColor(TFT_WHITE);
-    tft->setTextSize(1);
-    int16_t y = yStart + 4;
-    for (const String& s : lcdLogs) {
-        tft->setCursor(4, y);
-        tft->print(s);
-        y += 12;
-    }
+    QueueBase* qb = lcdMod->getQueue();
+    if (!qb) return;
+    DynamicJsonDocument* vars = new DynamicJsonDocument(256);
+    JsonArray arr = vars->createNestedArray("v");
+    arr.add(line);
+    QueueMessage* msg = new QueueMessage{genUUID4(), lcdMod->getName(), String("ModuleManager"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_log_append"), vars};
+    qb->send(msg);
 }
 
 void ModuleManager::renderLoadingStep(const String& op, int percent) {

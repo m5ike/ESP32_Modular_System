@@ -306,7 +306,7 @@ bool CONTROL_FS::createDirectory(const String& path) {
     
     // SPIFFS doesn't have real directories, but we can create a marker file
     String markerPath = path + "/.dir";
-    return writeFile(markerPath, "");
+    return writeFile(markerPath, "0");
 }
 
 bool CONTROL_FS::removeDirectory(const String& path) {

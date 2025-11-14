@@ -82,7 +82,28 @@ bool CONTROL_LCD::stop() {
 }
 
 bool CONTROL_LCD::update() {
-    // Update display if needed
+    QueueBase* qb = getQueue();
+    if (qb) {
+        QueueMessage* incoming = nullptr;
+        if (qb->receive(incoming)) {
+            if (incoming && incoming->callName == "lcd_log_append" && incoming->callVariables) {
+                JsonArray arr = (*incoming->callVariables)["v"].as<JsonArray>();
+                for (JsonVariant v : arr) {
+                    appendLogLine(v.as<String>());
+                }
+                int16_t yStart = LCD_HEIGHT - 70;
+                tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
+                tft->setTextColor(TFT_WHITE);
+                tft->setTextSize(1);
+                int16_t y = yStart + 4;
+                for (const String& s : logLines) {
+                    tft->setCursor(4, y);
+                    tft->print(s);
+                    y += 12;
+                }
+            }
+        }
+    }
     return true;
 }
 
@@ -196,6 +217,11 @@ void CONTROL_LCD::drawCenteredText(int16_t y, const String& text, uint16_t color
     tft->setTextDatum(MC_DATUM); // Middle center
     tft->drawString(text, LCD_WIDTH / 2, y);
     tft->setTextDatum(TL_DATUM); // Reset to top left
+}
+
+void CONTROL_LCD::appendLogLine(const String& line) {
+    logLines.push_back(line);
+    while (logLines.size() > 5) logLines.erase(logLines.begin());
 }
 
 void CONTROL_LCD::drawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color, bool filled) {

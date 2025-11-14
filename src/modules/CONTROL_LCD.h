@@ -2,6 +2,7 @@
 #define CONTROL_LCD_H
 
 #include "../ModuleManager.h"
+#include <vector>
 #include <TFT_eSPI.h>
 
 // LCD GPIO Pins - according to board specification
@@ -22,6 +23,7 @@ private:
     bool lcdInitialized;
     uint8_t brightness;
     uint8_t rotation;
+    std::vector<String> logLines;
     
     void setupBacklight();
     
@@ -43,6 +45,7 @@ public:
     void setBrightness(uint8_t level);
     uint8_t getBrightness() { return brightness; }
     void setRotation(uint8_t rot);
+    void appendLogLine(const String& line);
     
     // Drawing functions
     void clear(uint16_t color = TFT_BLACK);
