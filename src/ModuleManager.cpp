@@ -224,7 +224,7 @@ bool ModuleManager::updateModules() {
         }
     }
     for (auto* mod : modules) {
-        if (mod->getState() == MODULE_ENABLED) {
+        if (mod->getState() == MODULE_ENABLED && !mod->getUseTask()) {
             mod->update();
         }
     }
@@ -304,14 +304,12 @@ void ModuleManager::appendLCDLog(const String& line) {
 void ModuleManager::renderLoadingStep(const String& op, int percent) {
     Module* lcdMod = getModule("CONTROL_LCD");
     if (!lcdMod) return;
-    CONTROL_LCD* lcd = static_cast<CONTROL_LCD*>(lcdMod);
-    if (!lcd || lcd->getState() != MODULE_ENABLED) return;
-    TFT_eSPI* tft = lcd->getDisplay();
-    if (!tft) return;
-    tft->fillRect(0, 0, LCD_WIDTH, 40, TFT_BLACK);
-    lcd->drawCenteredText(18, "ESP32 Modular System", TFT_CYAN, 2);
-    tft->fillRect(0, 60, LCD_WIDTH, 180, TFT_BLACK);
-    lcd->drawCenteredText(120, op, TFT_WHITE, 2);
-    lcd->drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
+    QueueBase* qb = lcdMod->getQueue();
+    if (!qb) return;
+    DynamicJsonDocument* vars = new DynamicJsonDocument(256);
+    (*vars)["op"] = op;
+    (*vars)["percent"] = percent;
+    QueueMessage* msg = new QueueMessage{genUUID4(), lcdMod->getName(), String("ModuleManager"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_boot_step"), vars};
+    qb->send(msg);
     appendLCDLog(String("[") + "INFO" + "][BOOT] " + op);
 }

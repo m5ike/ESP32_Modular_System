@@ -75,9 +75,15 @@ void setup() {
     
     // Show status on LCD
     if (lcdModule && lcdModule->getState() == MODULE_ENABLED) {
-        std::vector<String> lines;
-        lines.push_back("Initialized");
-        lcdModule->displayStatus("System", lines);
+        QueueBase* qb = lcdModule->getQueue();
+        if (qb) {
+            DynamicJsonDocument* vars = new DynamicJsonDocument(256);
+            (*vars)["title"] = String("System");
+            JsonArray arr = (*vars)["lines"].to<JsonArray>();
+            arr.add("Initialized");
+            QueueMessage* msg = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_status"), vars};
+            qb->send(msg);
+        }
     }
     
     // Start all autostart modules
@@ -92,19 +98,39 @@ void setup() {
     DEBUG_I("===========================================");
     
     if (lcdModule && lcdModule->getState() == MODULE_ENABLED) {
-        std::vector<String> lines;
-        lines.push_back("Ready");
-        lcdModule->displayStatus("System", lines);
-        
-        // Display WiFi info
-        if (wifiModule && wifiModule->getState() == MODULE_ENABLED) {
-            String ip = wifiModule->getIP();
-            lcdModule->drawText(10, 200, "WiFi: " + wifiModule->getSSID(), TFT_CYAN, 1);
-            lcdModule->drawText(10, 215, "IP: " + ip, TFT_CYAN, 1);
+        QueueBase* qb = lcdModule->getQueue();
+        if (qb) {
+            DynamicJsonDocument* v1 = new DynamicJsonDocument(256);
+            (*v1)["title"] = String("System");
+            JsonArray arr1 = (*v1)["lines"].to<JsonArray>();
+            arr1.add("Ready");
+            QueueMessage* m1 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_status"), v1};
+            qb->send(m1);
+            if (wifiModule && wifiModule->getState() == MODULE_ENABLED) {
+                String ip = wifiModule->getIP();
+                DynamicJsonDocument* v2 = new DynamicJsonDocument(256);
+                (*v2)["x"] = 10;
+                (*v2)["y"] = 200;
+                (*v2)["text"] = String("WiFi: ") + wifiModule->getSSID();
+                (*v2)["color"] = (uint16_t)TFT_CYAN;
+                QueueMessage* m2 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v2};
+                qb->send(m2);
+                DynamicJsonDocument* v3 = new DynamicJsonDocument(256);
+                (*v3)["x"] = 10;
+                (*v3)["y"] = 215;
+                (*v3)["text"] = String("IP: ") + ip;
+                (*v3)["color"] = (uint16_t)TFT_CYAN;
+                QueueMessage* m3 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v3};
+                qb->send(m3);
+            }
+            DynamicJsonDocument* v4 = new DynamicJsonDocument(256);
+            (*v4)["x"] = 10;
+            (*v4)["y"] = 240;
+            (*v4)["text"] = String("Web: http://192.168.4.1");
+            (*v4)["color"] = (uint16_t)TFT_YELLOW;
+            QueueMessage* m4 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v4};
+            qb->send(m4);
         }
-        
-        // Display URL
-        lcdModule->drawText(10, 240, "Web: http://192.168.4.1", TFT_YELLOW, 1);
     }
 }
 

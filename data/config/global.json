@@ -1,0 +1,88 @@
+{
+  "version": "1.0.0",
+  "filesystem": {
+    "max_size": 524288,
+    "comment": "512 kB default"
+  },
+  "log_system": {
+    "max_size": 524288,
+    "comment": "512 kB default"
+  },
+  "modules": {
+    "CONTROL_FS": {
+      "critical": true,
+      "state": "enabled",
+      "priority": 100,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.1"
+    },
+    "CONTROL_WIFI": {
+      "critical": true,
+      "state": "enabled",
+      "priority": 90,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.0"
+    },
+    "CONTROL_LCD": {
+      "state": "enabled",
+      "priority": 85,
+      "rotation": 180,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.1"
+    },
+    "CONTROL_SERIAL": {
+      "state": "enabled",
+      "priority": 80,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.0"
+    },
+    "CONTROL_WEB": {
+      "state": "enabled",
+      "priority": 75,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.0"
+    },
+    "CONTROL_RADAR": {
+      "state": "enabled",
+      "priority": 50,
+      "autostart": false,
+      "test": false,
+      "debug": false,
+      "version": "1.0.1"
+    },
+    "CONTROL_MEASURE": {
+      "state": "enabled",
+      "priority": 50,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "1.0.1"
+    },
+    "CONTROL_STEPMOTOR": {
+      "state": "disabled",
+      "priority": 50,
+      "autostart": false,
+      "test": true,
+      "debug": false,
+      "version": "1.0.0"
+    },
+    "CONTROL_ULTRASOUND": {
+      "state": "disabled",
+      "priority": 50,
+      "autostart": false,
+      "test": false,
+      "debug": false,
+      "version": "1.0.0"
+    }
+  }
+}

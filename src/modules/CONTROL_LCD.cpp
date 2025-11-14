@@ -86,20 +86,63 @@ bool CONTROL_LCD::update() {
     if (qb) {
         QueueMessage* incoming = nullptr;
         if (qb->receive(incoming)) {
-            if (incoming && incoming->callName == "lcd_log_append" && incoming->callVariables) {
-                JsonArray arr = (*incoming->callVariables)["v"].as<JsonArray>();
-                for (JsonVariant v : arr) {
-                    appendLogLine(v.as<String>());
-                }
-                int16_t yStart = LCD_HEIGHT - 70;
-                tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
-                tft->setTextColor(TFT_WHITE);
-                tft->setTextSize(1);
-                int16_t y = yStart + 4;
-                for (const String& s : logLines) {
-                    tft->setCursor(4, y);
-                    tft->print(s);
-                    y += 12;
+            if (incoming && incoming->callVariables) {
+                if (incoming->callName == "lcd_log_append") {
+                    JsonArray arr = (*incoming->callVariables)["v"].as<JsonArray>();
+                    for (JsonVariant v : arr) { appendLogLine(v.as<String>()); }
+                    int16_t yStart = LCD_HEIGHT - 70;
+                    tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
+                    tft->setTextColor(TFT_WHITE);
+                    tft->setTextSize(1);
+                    int16_t y = yStart + 4;
+                    for (const String& s : logLines) { tft->setCursor(4, y); tft->print(s); y += 12; }
+                } else if (incoming->callName == "lcd_radar_update") {
+                    int d = (*incoming->callVariables)["d"] | -1;
+                    float v = (*incoming->callVariables)["v"] | 0.0f;
+                    int dir = (*incoming->callVariables)["dir"] | 0;
+                    int type = (*incoming->callVariables)["type"] | 0;
+                    int16_t top = 60;
+                    int16_t h = 180;
+                    tft->fillRect(0, top, LCD_WIDTH, h, TFT_BLACK);
+                    drawCenteredText(top + 12, String("Distance ") + String(d) + " cm", TFT_WHITE, 2);
+                    if (type == 2) {
+                        String sp = String(v, 2) + " cm/s";
+                        String dd = dir > 0 ? "away" : (dir < 0 ? "near" : "still");
+                        drawCenteredText(top + 36, String("Speed ") + sp + " (" + dd + ")", TFT_CYAN, 2);
+                        int16_t cx = LCD_WIDTH / 2;
+                        int16_t cy = top + 100;
+                        int16_t r = 20;
+                        drawCircle(cx, cy, r, TFT_GREEN, true);
+                        int16_t len = 30;
+                        int16_t dy = dir < 0 ? -len : (dir > 0 ? len : 0);
+                        if (dy != 0) tft->drawLine(cx, cy, cx, cy + dy, TFT_YELLOW);
+                    } else {
+                        int16_t barW = LCD_WIDTH - 40;
+                        int16_t barX = 20;
+                        int16_t barY = top + h - 40;
+                        int16_t percent = (int)constrain((d * 100) / 400, 0, 100);
+                        drawProgressBar(barX, barY, barW, 18, percent, TFT_GREEN);
+                    }
+                } else if (incoming->callName == "lcd_status") {
+                    String title = (*incoming->callVariables)["title"].as<String>();
+                    JsonArray lines = (*incoming->callVariables)["lines"].as<JsonArray>();
+                    std::vector<String> ls;
+                    for (JsonVariant it : lines) { ls.push_back(it.as<String>()); }
+                    displayStatus(title, ls);
+                } else if (incoming->callName == "lcd_text") {
+                    int16_t x = (*incoming->callVariables)["x"] | 0;
+                    int16_t y = (*incoming->callVariables)["y"] | 0;
+                    String text = (*incoming->callVariables)["text"].as<String>();
+                    uint16_t color = (*incoming->callVariables)["color"] | TFT_WHITE;
+                    drawText(x, y, text, color, 1);
+                } else if (incoming->callName == "lcd_boot_step") {
+                    String op = (*incoming->callVariables)["op"].as<String>();
+                    int percent = (*incoming->callVariables)["percent"] | 0;
+                    tft->fillRect(0, 0, LCD_WIDTH, 40, TFT_BLACK);
+                    drawCenteredText(18, "ESP32 Modular System", TFT_CYAN, 2);
+                    tft->fillRect(0, 60, LCD_WIDTH, 180, TFT_BLACK);
+                    drawCenteredText(120, op, TFT_WHITE, 2);
+                    drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
                 }
             }
         }
@@ -114,8 +157,14 @@ bool CONTROL_LCD::test() {
         log("LCD not initialized", "ERROR");
         return false;
     }
-    
-    // Test colors
+    displayWelcome();
+    delay(3000);
+    displayError("const String &error");
+    delay(3000);
+    getDisplay()->invertDisplay(true);
+    delay(3000);
+    displayStatus("Status", {"Line 1", "Line 2", "Line 3"});
+    delay(3000);
     clear(TFT_RED);
     delay(500);
     clear(TFT_GREEN);
@@ -125,7 +174,8 @@ bool CONTROL_LCD::test() {
     clear(TFT_BLACK);
     
     // Test text
-    drawCenteredText(LCD_HEIGHT / 2, "LCD TEST OK", TFT_WHITE, 4);
+   
+    
     delay(1000);
     
     clear();

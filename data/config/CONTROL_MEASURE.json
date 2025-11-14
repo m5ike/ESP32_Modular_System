@@ -1,0 +1,9 @@
+{
+  "type": 0,
+  "pin_sensor": 34,
+  "pin_led": 25,
+  "queue_speed": 1000,
+  "led_blink_interval": 500,
+  "max_queue_size": 100,
+  "description": "Measurement module - MBT2 or DIBL1"
+}

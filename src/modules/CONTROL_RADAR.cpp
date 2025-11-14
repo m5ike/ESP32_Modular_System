@@ -78,32 +78,16 @@ bool CONTROL_RADAR::update() {
             lastDistance = d;
             lastMeasureMs = now;
             Module* lcdMod = ModuleManager::getInstance()->getModule("CONTROL_LCD");
-            CONTROL_LCD* lcd = lcdMod ? static_cast<CONTROL_LCD*>(lcdMod) : nullptr;
-            if (lcd && lcd->getState() == MODULE_ENABLED) {
-                TFT_eSPI* tft = lcd->getDisplay();
-                if (tft) {
-                    int16_t top = 60;
-                    int16_t h = 180;
-                    tft->fillRect(0, top, LCD_WIDTH, h, TFT_BLACK);
-                    lcd->drawCenteredText(top + 12, String("Distance ") + String(d) + " cm", TFT_WHITE, 2);
-                    if (component.type == RADAR_TYPE_DIYW1) {
-                        String sp = String(lastSpeed, 2) + " cm/s";
-                        String dir = movementDir > 0 ? "away" : (movementDir < 0 ? "near" : "still");
-                        lcd->drawCenteredText(top + 36, String("Speed ") + sp + " (" + dir + ")", TFT_CYAN, 2);
-                        int16_t cx = LCD_WIDTH / 2;
-                        int16_t cy = top + 100;
-                        int16_t r = 20;
-                        lcd->drawCircle(cx, cy, r, TFT_GREEN, true);
-                        int16_t len = 30;
-                        int16_t dy = movementDir < 0 ? -len : (movementDir > 0 ? len : 0);
-                        if (dy != 0) tft->drawLine(cx, cy, cx, cy + dy, TFT_YELLOW);
-                    } else {
-                        int16_t barW = LCD_WIDTH - 40;
-                        int16_t barX = 20;
-                        int16_t barY = top + h - 40;
-                        int16_t percent = (int)constrain((d * 100) / 400, 0, 100);
-                        lcd->drawProgressBar(barX, barY, barW, 18, percent, TFT_GREEN);
-                    }
+            if (lcdMod && lcdMod->getState() == MODULE_ENABLED) {
+                QueueBase* qb = lcdMod->getQueue();
+                if (qb) {
+                    DynamicJsonDocument* vars = new DynamicJsonDocument(256);
+                    (*vars)["d"] = (int)d;
+                    (*vars)["v"] = lastSpeed;
+                    (*vars)["dir"] = movementDir;
+                    (*vars)["type"] = (int)component.type;
+                    QueueMessage* msg = new QueueMessage{genUUID4(), lcdMod->getName(), getName(), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_radar_update"), vars};
+                    qb->send(msg);
                 }
             }
         }

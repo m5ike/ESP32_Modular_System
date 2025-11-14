@@ -351,22 +351,32 @@ String CONTROL_FS::readLogs(size_t maxLines) {
     String allLogs = readFile(LOG_FILE_PATH);
     if (allLogs.length() == 0) return "";
     
-    // Return last N lines
-    std::vector<String> lines;
+    size_t cap = max((size_t)1, min(maxLines, (size_t)200));
+    String* ring = new String[cap];
+    size_t write = 0;
+    size_t stored = 0;
     int lastIndex = 0;
     int index = 0;
-    
     while ((index = allLogs.indexOf('\n', lastIndex)) != -1) {
-        lines.push_back(allLogs.substring(lastIndex, index + 1));
+        String line = allLogs.substring(lastIndex, index + 1);
+        ring[write] = line;
+        write = (write + 1) % cap;
+        if (stored < cap) stored++;
         lastIndex = index + 1;
     }
-    
-    String result = "";
-    size_t start = lines.size() > maxLines ? lines.size() - maxLines : 0;
-    for (size_t i = start; i < lines.size(); i++) {
-        result += lines[i];
+    if (lastIndex < allLogs.length()) {
+        String tail = allLogs.substring(lastIndex);
+        ring[write] = tail + "\n";
+        write = (write + 1) % cap;
+        if (stored < cap) stored++;
     }
-    
+    String result = "";
+    size_t startIdx = (stored < cap) ? 0 : write;
+    for (size_t i = 0; i < stored; i++) {
+        size_t pos = (startIdx + i) % cap;
+        result += ring[pos];
+    }
+    delete[] ring;
     return result;
 }
 
