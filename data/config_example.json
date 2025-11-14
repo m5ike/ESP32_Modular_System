@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "fileSystem": {
+    "maxSize": 2097152,
+    "comment": "2 MB"
+  },
+  "logSystem": {
+    "maxSize": 1048576,
+    "comment": "1 MB"
+  },
+  "modules": {
+    "CONTROL_FS": {
+      "state": "enabled",
+      "priority": 100,
+      "autoStart": true,
+      "debug": false,
+      "version": "1.0.0"
+    },
+    "CONTROL_LCD": {
+      "state": "enabled",
+      "priority": 90,
+      "autoStart": true,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "brightness": 255,
+        "rotation": 0,
+        "backlight": true
+      }
+    },
+    "CONTROL_WIFI": {
+      "state": "enabled",
+      "priority": 85,
+      "autoStart": true,
+      "debug": false,
+      "version": "1.0.0",
+      "ssid": "YourSSID",
+      "password": "YourPassword",
+      "mode": 2,
+      "comment": "mode: 0=OFF, 1=AP, 2=CLIENT, 3=APSTA",
+      "ap_settings": {
+        "ip": "192.168.4.1",
+        "gateway": "192.168.4.1",
+        "subnet": "255.255.255.0",
+        "dhcp": true,
+        "maxConnections": 4,
+        "hidden": false,
+        "channel": 1
+      },
+      "client_settings": {
+        "dhcp": true,
+        "ip": "192.168.1.100",
+        "gateway": "192.168.1.1",
+        "subnet": "255.255.255.0",
+        "dns1": "8.8.8.8",
+        "dns2": "8.8.4.4"
+      }
+    },
+    "CONTROL_SERIAL": {
+      "state": "enabled",
+      "priority": 80,
+      "autoStart": true,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "baudRate": 115200,
+        "bufferSize": 256
+      }
+    },
+    "CONTROL_WEB": {
+      "state": "enabled",
+      "priority": 70,
+      "autoStart": true,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "port": 80,
+        "enableCORS": true,
+        "maxConnections": 4
+      }
+    },
+    "CONTROL_RADAR": {
+      "state": "disabled",
+      "priority": 60,
+      "autoStart": false,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "type": 1,
+        "comment_type": "0=NONE, 1=MBT1, 2=DIYW1",
+        "gpioTrig": 5,
+        "gpioEcho": 18,
+        "gpioLED": 2,
+        "speed": 100,
+        "step": 10,
+        "blinkSpeed": 500
+      }
+    },
+    "CONTROL_MEASURE": {
+      "state": "disabled",
+      "priority": 55,
+      "autoStart": false,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "type": 1,
+        "comment_type": "1=MBT2, 2=DIBL1",
+        "gpioPins": [13, 14, 27],
+        "queueSpeed": 100,
+        "blinkSpeed": 500
+      }
+    },
+    "CONTROL_STEPMOTOR": {
+      "state": "disabled",
+      "priority": 50,
+      "autoStart": false,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "type": "STB2",
+        "gpioStep": 16,
+        "gpioDir": 17,
+        "gpioEnable": 25,
+        "rotateInfinite": false,
+        "rotateMaxAngle": 360,
+        "rotateStepAngle": 1.8,
+        "rotateStepSpeed": 1000,
+        "rotateStepPause": 10
+      }
+    },
+    "CONTROL_ULTRASOUND": {
+      "state": "disabled",
+      "priority": 45,
+      "autoStart": false,
+      "debug": false,
+      "version": "1.0.0",
+      "settings": {
+        "type": "UVC1",
+        "gpioTrig": 26,
+        "gpioEcho": 27,
+        "maxDistance": 400,
+        "timeout": 30000
+      }
+    }
+  }
+}

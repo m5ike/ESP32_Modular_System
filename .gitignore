@@ -1,0 +1,47 @@
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+*.pyc
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+*~
+
+# Compiled Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directories
+build/
+bin/
+.build/
+
+# IDE files
+.idea/
+*.iml
+*.sublime-*
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Configuration with passwords
+/data/config/global.json
+/data/config/*.json
+!/data/config_example.json

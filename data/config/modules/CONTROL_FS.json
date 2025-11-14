@@ -1,0 +1,6 @@
+{
+  "max_size": 2097152,
+  "log_max_size": 1048576,
+  "auto_format": false,
+  "enable_cache": true
+}
