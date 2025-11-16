@@ -1,0 +1,555 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ESP32 Modular System Configuration Schema",
+  "description": "Configuration schema for ESP32 modular system with validation rules",
+  "version": "2.0.0",
+  "type": "object",
+  "required": ["version", "modules", "system"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration version (semantic versioning)"
+    },
+    "system": {
+      "type": "object",
+      "description": "System-wide configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "default": "ESP32-Modular-System",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "System hostname/name"
+        },
+        "debug_level": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 4,
+          "description": "Debug level (0=none, 1=error, 2=warn, 3=info, 4=verbose)"
+        },
+        "watchdog": {
+          "type": "object",
+          "description": "System watchdog configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable system watchdog"
+            },
+            "timeout_ms": {
+              "type": "integer",
+              "default": 10000,
+              "minimum": 1000,
+              "maximum": 60000,
+              "description": "Watchdog timeout in milliseconds"
+            },
+            "reset_on_timeout": {
+              "type": "boolean",
+              "default": true,
+              "description": "Reset system on watchdog timeout"
+            }
+          },
+          "required": ["enabled", "timeout_ms"]
+        },
+        "filesystem": {
+          "type": "object",
+          "description": "Filesystem configuration",
+          "properties": {
+            "max_size": {
+              "type": "integer",
+              "default": 2097152,
+              "minimum": 1048576,
+              "maximum": 8388608,
+              "description": "Maximum filesystem size in bytes"
+            },
+            "log_max_size": {
+              "type": "integer",
+              "default": 1048576,
+              "minimum": 262144,
+              "maximum": 4194304,
+              "description": "Maximum log file size in bytes"
+            },
+            "auto_format": {
+              "type": "boolean",
+              "default": false,
+              "description": "Automatically format filesystem on corruption"
+            },
+            "enable_cache": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable filesystem caching"
+            }
+          }
+        }
+      },
+      "required": ["watchdog"]
+    },
+    "modules": {
+      "type": "object",
+      "description": "Module configurations",
+      "patternProperties": {
+        "^CONTROL_[A-Z_]+$": {
+          "type": "object",
+          "description": "Module configuration",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": ["enabled", "disabled", "error"],
+              "default": "enabled",
+              "description": "Module state"
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "Module initialization priority (1=highest, 100=lowest)"
+            },
+            "autostart": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically start module on boot"
+            },
+            "test": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable module self-test"
+            },
+            "debug": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable module debug output"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "description": "Module version"
+            },
+            "critical": {
+              "type": "boolean",
+              "default": false,
+              "description": "Module is critical for system operation"
+            },
+            "watchdog": {
+              "type": "object",
+              "description": "Module-specific watchdog configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable module watchdog"
+                },
+                "timeout_ms": {
+                  "type": "integer",
+                  "default": 5000,
+                  "minimum": 1000,
+                  "maximum": 30000,
+                  "description": "Module watchdog timeout in milliseconds"
+                },
+                "auto_restart": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Automatically restart module on watchdog timeout"
+                }
+              }
+            },
+            "freertos": {
+              "type": "object",
+              "description": "FreeRTOS task and queue configuration",
+              "properties": {
+                "task": {
+                  "type": "object",
+                  "description": "Task configuration",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "description": "Task name"
+                    },
+                    "stack": {
+                      "type": "integer",
+                      "default": 4096,
+                      "minimum": 2048,
+                      "maximum": 32768,
+                      "description": "Task stack size in bytes"
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "default": 3,
+                      "minimum": 1,
+                      "maximum": 24,
+                      "description": "Task priority (1=lowest, 24=highest)"
+                    },
+                    "core": {
+                      "type": "integer",
+                      "enum": [-1, 0, 1],
+                      "default": -1,
+                      "description": "CPU core affinity (-1=any, 0=core0, 1=core1)"
+                    },
+                    "enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Enable task creation"
+                    }
+                  },
+                  "required": ["name", "stack", "priority"]
+                },
+                "queue": {
+                  "type": "object",
+                  "description": "Queue configuration",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Enable queue creation"
+                    },
+                    "length": {
+                      "type": "integer",
+                      "default": 8,
+                      "minimum": 1,
+                      "maximum": 256,
+                      "description": "Queue length"
+                    },
+                    "send_timeout_ms": {
+                      "type": "integer",
+                      "default": 1000,
+                      "minimum": 0,
+                      "maximum": 60000,
+                      "description": "Queue send timeout in milliseconds"
+                    },
+                    "recv_timeout_ms": {
+                      "type": "integer",
+                      "default": 100,
+                      "minimum": 0,
+                      "maximum": 60000,
+                      "description": "Queue receive timeout in milliseconds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": ["state", "priority", "version"]
+        }
+      }
+    },
+    "backup_settings": {
+      "type": "object",
+      "description": "Configuration backup settings",
+      "properties": {
+        "auto_backup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic configuration backups"
+        },
+        "backup_count": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Number of backups to retain"
+        },
+        "backup_interval_hours": {
+          "type": "integer",
+          "default": 24,
+          "minimum": 1,
+          "maximum": 168,
+          "description": "Backup interval in hours"
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "System monitoring configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable system monitoring"
+        },
+        "health_check_interval": {
+          "type": "integer",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 300000,
+          "description": "Health check interval in milliseconds"
+        },
+        "performance_tracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance tracking"
+        },
+        "log_performance": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log performance metrics"
+        }
+      }
+    },
+    "wifi": {
+      "type": "object",
+      "description": "WiFi module specific configuration",
+      "properties": {
+        "ssid": {
+          "type": "string",
+          "default": "ESP32-LCD",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "WiFi SSID"
+        },
+        "password": {
+          "type": "string",
+          "default": "12345678",
+          "minLength": 8,
+          "maxLength": 64,
+          "description": "WiFi password"
+        },
+        "mode": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "default": 1,
+          "description": "WiFi mode (0=station, 1=AP, 2=station+AP)"
+        },
+        "ap": {
+          "type": "object",
+          "description": "Access point configuration",
+          "properties": {
+            "ip": {
+              "type": "string",
+              "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+              "default": "192.168.4.1",
+              "description": "AP IP address"
+            },
+            "gateway": {
+              "type": "string",
+              "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+              "default": "192.168.4.1",
+              "description": "AP gateway address"
+            },
+            "subnet": {
+              "type": "string",
+              "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+              "default": "255.255.255.0",
+              "description": "AP subnet mask"
+            }
+          }
+        }
+      }
+    },
+    "lcd": {
+      "type": "object",
+      "description": "LCD module specific configuration",
+      "properties": {
+        "brightness": {
+          "type": "integer",
+          "default": 255,
+          "minimum": 0,
+          "maximum": 255,
+          "description": "LCD brightness (0-255)"
+        },
+        "backlight_on": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable LCD backlight"
+        },
+        "width": {
+          "type": "integer",
+          "default": 170,
+          "minimum": 80,
+          "maximum": 480,
+          "description": "LCD width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "default": 320,
+          "minimum": 64,
+          "maximum": 800,
+          "description": "LCD height in pixels"
+        },
+        "rotation": {
+          "type": "integer",
+          "enum": [0, 1, 2, 3],
+          "default": 0,
+          "description": "LCD rotation (0=0°, 1=90°, 2=180°, 3=270°)"
+        },
+        "pins": {
+          "type": "object",
+          "description": "LCD pin configuration",
+          "properties": {
+            "mosi": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 23,
+              "description": "SPI MOSI pin"
+            },
+            "sclk": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 18,
+              "description": "SPI SCLK pin"
+            },
+            "cs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 15,
+              "description": "SPI CS pin"
+            },
+            "dc": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 2,
+              "description": "LCD DC pin"
+            },
+            "rst": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 4,
+              "description": "LCD RST pin"
+            },
+            "blk": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 48,
+              "default": 32,
+              "description": "LCD backlight pin"
+            }
+          }
+        }
+      }
+    },
+    "serial": {
+      "type": "object",
+      "description": "Serial module specific configuration",
+      "properties": {
+        "baud": {
+          "type": "integer",
+          "default": 115200,
+          "enum": [9600, 19200, 38400, 57600, 115200, 230400, 460800],
+          "description": "Serial baud rate"
+        },
+        "echo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable command echo"
+        },
+        "prompt": {
+          "type": "string",
+          "default": "> ",
+          "maxLength": 16,
+          "description": "Command prompt string"
+        },
+        "history_size": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Command history size"
+        }
+      }
+    },
+    "web": {
+      "type": "object",
+      "description": "Web server module specific configuration",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "default": 80,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Web server port"
+        },
+        "enable_cors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CORS headers"
+        },
+        "max_clients": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "Maximum concurrent clients"
+        },
+        "auth_required": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require authentication"
+        },
+        "username": {
+          "type": "string",
+          "default": "admin",
+          "maxLength": 32,
+          "description": "Authentication username"
+        },
+        "password": {
+          "type": "string",
+          "default": "admin",
+          "maxLength": 32,
+          "description": "Authentication password"
+        }
+      }
+    },
+    "radar": {
+      "type": "object",
+      "description": "Radar module specific configuration",
+      "properties": {
+        "type": {
+          "type": "integer",
+          "enum": [0, 1],
+          "default": 0,
+          "description": "Radar type (0=HC-SR04, 1=other)"
+        },
+        "pin_trig": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48,
+          "default": 13,
+          "description": "Trigger pin"
+        },
+        "pin_echo": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48,
+          "default": 12,
+          "description": "Echo pin"
+        },
+        "pin_led": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48,
+          "default": 14,
+          "description": "Status LED pin"
+        },
+        "speed": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Measurement speed (ms)"
+        },
+        "step": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Measurement step size"
+        },
+        "led_blink_interval": {
+          "type": "integer",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "LED blink interval (ms)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "version": "2.0.0",
+  "system": {
+    "name": "ESP32-Modular-System",
+    "debug_level": 2,
+    "watchdog": {
+      "enabled": true,
+      "timeout_ms": 10000,
+      "reset_on_timeout": true
+    },
+    "filesystem": {
+      "max_size": 2097152,
+      "log_max_size": 1048576,
+      "auto_format": false,
+      "enable_cache": true
+    }
+  },
+  "modules": {
+    "CONTROL_FS": {
+      "state": "enabled",
+      "priority": 100,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "2.0.0",
+      "critical": true,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_FS_TASK",
+          "stack": 4096,
+          "priority": 3,
+          "core": 0,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": false,
+          "length": 8,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    },
+    "CONTROL_WIFI": {
+      "state": "enabled",
+      "priority": 90,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "2.0.0",
+      "critical": true,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_WIFI_TASK",
+          "stack": 4096,
+          "priority": 4,
+          "core": 0,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": false,
+          "length": 8,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    },
+    "CONTROL_LCD": {
+      "state": "enabled",
+      "priority": 85,
+      "autostart": true,
+      "test": true,
+      "debug": true,
+      "version": "2.0.0",
+      "critical": false,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_LCD_TASK",
+          "stack": 4096,
+          "priority": 3,
+          "core": 1,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": true,
+          "length": 16,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    },
+    "CONTROL_SERIAL": {
+      "state": "enabled",
+      "priority": 80,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "2.0.0",
+      "critical": false,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_SERIAL_TASK",
+          "stack": 4096,
+          "priority": 3,
+          "core": 0,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": false,
+          "length": 8,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    },
+    "CONTROL_WEB": {
+      "state": "enabled",
+      "priority": 75,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "2.0.0",
+      "critical": false,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_WEB_TASK",
+          "stack": 4096,
+          "priority": 3,
+          "core": 0,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": false,
+          "length": 8,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    },
+    "CONTROL_RADAR": {
+      "state": "enabled",
+      "priority": 50,
+      "autostart": true,
+      "test": true,
+      "debug": false,
+      "version": "2.0.0",
+      "critical": false,
+      "watchdog": {
+        "enabled": true,
+        "timeout_ms": 5000,
+        "auto_restart": true
+      },
+      "freertos": {
+        "task": {
+          "name": "CONTROL_RADAR_TASK",
+          "stack": 4096,
+          "priority": 2,
+          "core": 1,
+          "enabled": true
+        },
+        "queue": {
+          "enabled": false,
+          "length": 8,
+          "send_timeout_ms": 1000,
+          "recv_timeout_ms": 100
+        }
+      }
+    }
+  },
+  "backup_settings": {
+    "auto_backup": true,
+    "backup_count": 10,
+    "backup_interval_hours": 24
+  },
+  "monitoring": {
+    "enabled": true,
+    "health_check_interval": 30000,
+    "performance_tracking": true,
+    "log_performance": false
+  },
+  "wifi": {
+    "ssid": "ESP32-LCD",
+    "password": "12345678",
+    "mode": 1,
+    "ap": {
+      "ip": "192.168.4.1",
+      "gateway": "192.168.4.1",
+      "subnet": "255.255.255.0"
+    }
+  },
+  "lcd": {
+    "brightness": 255,
+    "backlight_on": true,
+    "width": 170,
+    "height": 320,
+    "rotation": 0,
+    "pins": {
+      "mosi": 23,
+      "sclk": 18,
+      "cs": 15,
+      "dc": 2,
+      "rst": 4,
+      "blk": 32
+    }
+  },
+  "serial": {
+    "baud": 115200,
+    "echo": true,
+    "prompt": "> ",
+    "history_size": 10
+  },
+  "web": {
+    "port": 80,
+    "enable_cors": true,
+    "max_clients": 4,
+    "auth_required": false,
+    "username": "admin",
+    "password": "admin"
+  },
+  "radar": {
+    "type": 0,
+    "pin_trig": 13,
+    "pin_echo": 12,
+    "pin_led": 14,
+    "speed": 100,
+    "step": 1,
+    "led_blink_interval": 500
+  }
+}

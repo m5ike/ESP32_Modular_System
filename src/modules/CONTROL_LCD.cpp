@@ -1,4 +1,5 @@
 #include "CONTROL_LCD.h"
+#include "CONTROL_WIFI.h"
 
 CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     tft = nullptr;
@@ -18,6 +19,12 @@ CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     QueueConfig qcfg = getQueueConfig();
     qcfg.length = 16;
     setQueueConfig(qcfg);
+    lastRadarDistance = -9999;
+    lastRadarSpeed = -9999.0f;
+    lastRadarDir = -99;
+    lastRadarType = -99;
+    lastRadarAngle = -9999;
+    firstRadarDraw = true;
 }
 
 CONTROL_LCD::~CONTROL_LCD() {
@@ -55,6 +62,11 @@ bool CONTROL_LCD::init() {
     
     log("LCD initialized successfully");
     displayWelcome();
+    {
+        Module* wifiMod = ModuleManager::getInstance()->getModule("CONTROL_WIFI");
+        String ip = wifiMod ? static_cast<CONTROL_WIFI*>(wifiMod)->getIP() : String("esp32.local");
+        drawFooterURL(String("http://") + ip);
+    }
     
     return true;
 }
@@ -101,27 +113,15 @@ bool CONTROL_LCD::update() {
                     float v = (*incoming->callVariables)["v"] | 0.0f;
                     int dir = (*incoming->callVariables)["dir"] | 0;
                     int type = (*incoming->callVariables)["type"] | 0;
-                    int16_t top = 60;
-                    int16_t h = 180;
-                    tft->fillRect(0, top, LCD_WIDTH, h, TFT_BLACK);
-                    drawCenteredText(top + 12, String("Distance ") + String(d) + " cm", TFT_WHITE, 2);
-                    if (type == 2) {
-                        String sp = String(v, 2) + " cm/s";
-                        String dd = dir > 0 ? "away" : (dir < 0 ? "near" : "still");
-                        drawCenteredText(top + 36, String("Speed ") + sp + " (" + dd + ")", TFT_CYAN, 2);
-                        int16_t cx = LCD_WIDTH / 2;
-                        int16_t cy = top + 100;
-                        int16_t r = 20;
-                        drawCircle(cx, cy, r, TFT_GREEN, true);
-                        int16_t len = 30;
-                        int16_t dy = dir < 0 ? -len : (dir > 0 ? len : 0);
-                        if (dy != 0) tft->drawLine(cx, cy, cx, cy + dy, TFT_YELLOW);
-                    } else {
-                        int16_t barW = LCD_WIDTH - 40;
-                        int16_t barX = 20;
-                        int16_t barY = top + h - 40;
-                        int16_t percent = (int)constrain((d * 100) / 400, 0, 100);
-                        drawProgressBar(barX, barY, barW, 18, percent, TFT_GREEN);
+                    int ang = (*incoming->callVariables)["ang"] | 0;
+                    if (firstRadarDraw || d != lastRadarDistance || ang != lastRadarAngle || dir != lastRadarDir || type != lastRadarType) {
+                        drawRadarBox(d, v, dir, type, ang);
+                        lastRadarDistance = d;
+                        lastRadarSpeed = v;
+                        lastRadarDir = dir;
+                        lastRadarType = type;
+                        lastRadarAngle = ang;
+                        firstRadarDraw = false;
                     }
                 } else if (incoming->callName == "lcd_status") {
                     String title = (*incoming->callVariables)["title"].as<String>();
@@ -144,7 +144,9 @@ bool CONTROL_LCD::update() {
                     drawCenteredText(120, op, TFT_WHITE, 2);
                     drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
                 }
-            }
+                delete incoming->callVariables;
+                delete incoming;
+            } else if (incoming) { delete incoming; }
         }
     }
     return true;
@@ -206,28 +208,38 @@ bool CONTROL_LCD::loadConfig(DynamicJsonDocument& doc) {
     Module::loadConfig(doc);
     if (doc.containsKey("CONTROL_LCD")) {
         JsonObject lcd = doc["CONTROL_LCD"];
-        if (lcd.containsKey("brightness")) brightness = lcd["brightness"];
-        if (lcd.containsKey("rotation")) { rotation = lcd["rotation"]; if (tft) tft->setRotation(rotation); }
+        if (lcd.containsKey("brightness")) { brightness = lcd["brightness"]; setBrightness(brightness); }
+        if (lcd.containsKey("rotation")) {
+            int r = lcd["rotation"];
+            int mapped = r;
+            if (r == 0 || r == 1 || r == 2 || r == 3) { mapped = r; }
+            else if (r == 90) mapped = 1;
+            else if (r == 180) mapped = 2;
+            else if (r == 270) mapped = 3;
+            else mapped = 0;
+            rotation = (uint8_t)mapped;
+            if (tft) tft->setRotation(rotation);
+        }
     }
     return true;
 }
 
 void CONTROL_LCD::setupBacklight() {
-    pinMode(LCD_BL, OUTPUT);
-    digitalWrite(LCD_BL, HIGH);
+    pinMode(LCD_BLK, OUTPUT);
+    digitalWrite(LCD_BLK, HIGH);
 }
 
 void CONTROL_LCD::setBrightness(uint8_t level) {
     brightness = level;
     
     if (brightness == 0) {
-        digitalWrite(LCD_BL, LOW);
+        digitalWrite(LCD_BLK, LOW);
     } else if (brightness == 255) {
-        digitalWrite(LCD_BL, HIGH);
+        digitalWrite(LCD_BLK, HIGH);
     } else {
         // Use PWM for brightness control
         ledcSetup(0, 5000, 8);
-        ledcAttachPin(LCD_BL, 0);
+        ledcAttachPin(LCD_BLK, 0);
         ledcWrite(0, brightness);
     }
     
@@ -331,11 +343,9 @@ void CONTROL_LCD::displayWelcome() {
     
     clear();
     
-    drawCenteredText(LCD_HEIGHT / 2 - 40, "ESP32", TFT_CYAN, 4);
-    drawCenteredText(LCD_HEIGHT / 2 - 10, "Modular System", TFT_WHITE, 4);
-    drawCenteredText(LCD_HEIGHT / 2 + 20, "v1.0.0", TFT_GREEN, 2);
-    
-    drawProgressBar(35, LCD_HEIGHT - 40, LCD_WIDTH - 70, 20, 100, TFT_GREEN);
+    drawCenteredText(LCD_HEIGHT / 2 - 40, "ESP32", TFT_CYAN, 3);
+    drawCenteredText(LCD_HEIGHT / 2 - 10, "Modular System", TFT_WHITE, 3);
+    drawCenteredText(LCD_HEIGHT / 2 + 20, "v1.0.0", TFT_GREEN, 1);
     
     delay(2000);
     clear();
@@ -360,4 +370,48 @@ void CONTROL_LCD::drawProgressBar(int16_t x, int16_t y, int16_t w, int16_t h, ui
     tft->setTextDatum(MC_DATUM);
     tft->drawString(percentText, x + w / 2, y + h / 2);
     tft->setTextDatum(TL_DATUM);
+}
+
+void CONTROL_LCD::drawRadarBox(int d, float v, int dir, int type, int ang) {
+    if (!tft) return;
+    int16_t top = 50;
+    int16_t h = 200;
+    int16_t left = 10;
+    int16_t w = LCD_WIDTH - 20;
+    tft->fillRect(left, top, w, h, TFT_DARKGREY);
+    tft->drawRect(left, top, w, h, TFT_WHITE);
+    tft->setTextColor(TFT_BLACK, TFT_DARKGREY);
+    tft->setTextSize(1);
+    tft->setTextDatum(MC_DATUM);
+    tft->drawString(String("Distance ") + String(d) + " cm", LCD_WIDTH/2, top + 20);
+    tft->drawString(String("Angle ") + String(ang) + " deg", LCD_WIDTH/2, top + 40);
+    if (type == 2) {
+        String sp = String(v, 2) + " cm/s";
+        String dd = dir > 0 ? "away" : (dir < 0 ? "near" : "still");
+        tft->drawString(String("Speed ") + sp + " (" + dd + ")", LCD_WIDTH/2, top + 60);
+        int16_t cx = LCD_WIDTH / 2;
+        int16_t cy = top + 120;
+        int16_t r = 18;
+        tft->fillCircle(cx, cy, r, TFT_BLACK);
+        tft->drawCircle(cx, cy, r, TFT_YELLOW);
+        int16_t len = 35;
+        float rad = ang * 0.0174533f;
+        int16_t ex = cx + (int16_t)(len * cos(rad));
+        int16_t ey = cy + (int16_t)(len * sin(rad));
+        tft->drawLine(cx, cy, ex, ey, TFT_YELLOW);
+    }
+    {
+        Module* wifiMod = ModuleManager::getInstance()->getModule("CONTROL_WIFI");
+        String ip = wifiMod ? static_cast<CONTROL_WIFI*>(wifiMod)->getIP() : String("esp32.local");
+        drawFooterURL(String("http://") + ip);
+    }
+}
+
+void CONTROL_LCD::drawFooterURL(const String& url) {
+    if (!tft) return;
+    tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft->setTextSize(1);
+    tft->setTextDatum(MC_DATUM);
+    tft->fillRect(0, LCD_HEIGHT - 16, LCD_WIDTH, 16, TFT_BLACK);
+    tft->drawString(url, LCD_WIDTH/2, LCD_HEIGHT - 8);
 }

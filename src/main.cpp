@@ -73,6 +73,31 @@ void setup() {
         DEBUG_E("Failed to initialize modules!");
     }
     
+    // Demonstrate ConfigManager usage
+    if (fsModule && fsModule->getConfigManager()) {
+        ConfigManager* configMgr = fsModule->getConfigManager();
+        DEBUG_I("ConfigManager initialized with version: %s", configMgr->getCurrentVersion().c_str());
+        
+        // Example: Get system configuration
+        JsonVariant v;
+        if (configMgr->getConfigValue("system.name", v)) {
+            String systemName = v.as<String>();
+            DEBUG_I("System name from config: %s", systemName.c_str());
+        }
+        
+        // Example: Update debug setting to false via direct document access
+        DynamicJsonDocument* cfgDoc = configMgr->getConfiguration();
+        if (cfgDoc) {
+            (*cfgDoc)["system"]["debug"] = false;
+        }
+        
+        // Example: Get filesystem configuration
+        JsonVariant vfs;
+        if (configMgr->getConfigValue("filesystem.max_size", vfs)) {
+            DEBUG_I("Filesystem max size: %d bytes", vfs.as<int>());
+        }
+    }
+    
     // Show status on LCD
     if (lcdModule && lcdModule->getState() == MODULE_ENABLED) {
         QueueBase* qb = lcdModule->getQueue();

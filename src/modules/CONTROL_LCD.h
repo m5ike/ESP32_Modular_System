@@ -1,21 +1,18 @@
+/**
+ * @file CONTROL_LCD.h
+ * @brief LCD control module interface for ST7789 display.
+ * @author Michael Kojdl
+ * @email michael@kojdl.com
+ * @date 2025-11-16
+ * @version 1.0.1
+ */
 #ifndef CONTROL_LCD_H
 #define CONTROL_LCD_H
 
 #include "../ModuleManager.h"
+#include "../../include/Config.h"
 #include <vector>
 #include <TFT_eSPI.h>
-
-// LCD GPIO Pins - according to board specification
-#define LCD_MOSI 23
-#define LCD_SCLK 18
-#define LCD_CS 15
-#define LCD_DC 2
-#define LCD_RST 4
-#define LCD_BL 32
-
-// Display dimensions
-#define LCD_WIDTH 170
-#define LCD_HEIGHT 320
 
 class CONTROL_LCD : public Module {
 private:
@@ -24,8 +21,16 @@ private:
     uint8_t brightness;
     uint8_t rotation;
     std::vector<String> logLines;
+    int lastRadarDistance;
+    float lastRadarSpeed;
+    int lastRadarDir;
+    int lastRadarType;
+    int lastRadarAngle;
+    bool firstRadarDraw;
     
     void setupBacklight();
+    void drawRadarBox(int d, float v, int dir, int type, int ang);
+    void drawFooterURL(const String& url);
     
 public:
     CONTROL_LCD();

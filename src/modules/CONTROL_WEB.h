@@ -1,3 +1,11 @@
+/**
+ * @file CONTROL_WEB.h
+ * @brief Web server control module interface.
+ * @author Michael Kojdl
+ * @email michael@kojdl.com
+ * @date 2025-11-16
+ * @version 1.0.1
+ */
 #ifndef CONTROL_WEB_H
 #define CONTROL_WEB_H
 
@@ -5,6 +13,15 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 
+/**
+ * @class CONTROL_WEB
+ * @brief Provides HTTP routes, UI rendering, and REST API for system control.
+ */
+/**
+ * @class CONTROL_WEB
+ * @brief Asynchronous web UI and REST API provider.
+ * @details Sets up routes and handlers for HTML pages and JSON API endpoints.
+ */
 class CONTROL_WEB : public Module {
 private:
     AsyncWebServer* server;
@@ -30,7 +47,17 @@ private:
     void handleAPIModuleConfig(AsyncWebServerRequest *request);
     void handleAPIModuleSet(AsyncWebServerRequest *request);
     void handleAPIModuleAutostart(AsyncWebServerRequest *request);
+    void handleAPIModuleCommand(AsyncWebServerRequest *request);
+    void handleAPIConfigBackup(AsyncWebServerRequest *request);
+    void handleAPIConfigValidate(AsyncWebServerRequest *request);
+    void handleAPIConfigExport(AsyncWebServerRequest *request);
+    void handleAPIConfigImport(AsyncWebServerRequest *request);
+    void handleAPISystemInfo(AsyncWebServerRequest *request);
+    void handleAPISystemStats(AsyncWebServerRequest *request);
+    void handleAPISafetyLimits(AsyncWebServerRequest *request);
+    void handleAPISafetyStatus(AsyncWebServerRequest *request);
     void handleAPILogs(AsyncWebServerRequest *request);
+    void handleAPIRadar(AsyncWebServerRequest *request);
     void handleAPITest(AsyncWebServerRequest *request);
     
     // Helper functions

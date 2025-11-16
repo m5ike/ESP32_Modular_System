@@ -1,4 +1,4 @@
-// ST7789 170 x 320 display configuration for ESP32
+    // ST7789 170 x 320 display configuration for ESP32
 
 #define ST7789_DRIVER      // Configure all registers
 
