@@ -1,4 +1,5 @@
 #include "QueueBase.h"
+#include "FreeRTOSTypes.h"
 #include "ModuleManager.h"
 #include "ModuleRegistry.h"
 
@@ -40,11 +41,11 @@ void QueueBase::RECEIVE_RETURN_CALL_FUNC(QueueMessage* incoming) {
   String toId = incoming->fromQueue;
   QueueHandle_t toH = ModuleRegistry::getInstance()->findQueue(toId);
   if (!toH) return;
-  DynamicJsonDocument* vars = new DynamicJsonDocument(512);
-  JsonArray arr = vars->createNestedArray("v");
-  arr.add("RESULT");
-  arr.add((*incoming->callVariables)["v"]);
-  QueueMessage* resp = new QueueMessage{genUUID4(), toId, id(), EVENT_PROCESS_DONE, CALL_FUNCTION_ASYNC, String("RECEIVE_RETURN_CALL_FUNC"), vars};
+  //DynamicJsonDocument* vars = new DynamicJsonDocument(512);
+  //JsonArray arr = vars->createNestedArray("v");
+  //arr.add("RESULT");
+  //arr.add((*incoming->callVariables)["v"]);
+  QueueMessage* resp = new QueueMessage{incoming->eventUUID, toId, id(), EVENT_PROCESS_DONE, CALL_RECEIVE_RETURN, String(incoming->callName), incoming->callVariables};
   QueueMessage* tmp = resp;
   xQueueSend(toH, &tmp, cfg_.sendTimeoutTicks);
 }

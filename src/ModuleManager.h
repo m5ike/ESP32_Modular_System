@@ -46,6 +46,7 @@ public:
     virtual bool update() = 0;
     virtual bool test() = 0;
     virtual DynamicJsonDocument getStatus() = 0;
+    virtual bool callFunctionByName(const String& name, DynamicJsonDocument* params, String& result) { return false; }
     
     // Configuration
     virtual bool loadConfig(DynamicJsonDocument& doc);
@@ -80,7 +81,7 @@ public:
     void setUseQueue(bool u) { useQueue = u; }
     
     // Logging
-    void log(const String& message, const char* level = "INFO");
+  void log(const String& message, const char* level = "INFO");
 };
 
 // Module Manager

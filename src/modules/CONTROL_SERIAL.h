@@ -54,6 +54,10 @@ private:
     void cmdModuleCommand(const String& moduleName, const String& command, const String& args);
     void cmdRealTimeStatus();
     void cmdSafetyLimits();
+    void cmdFunctionList(const String& moduleName);
+    void cmdFunctionCall(const String& moduleName, const String& functionName, const String& jsonArgs);
+    void cmdFunctionRegisterName(const String& moduleName, const String& functionName);
+    void cmdFunctionRemove(const String& moduleName, const String& functionName);
     
     /**
      * @brief Safety and validation helpers for command execution.

@@ -72,6 +72,17 @@ private:
     bool sensorPresent;
     bool stepperPresent;
     bool buttonsPresent;
+    static const int SAMPLE_WINDOW = 32;
+    long distSamples[SAMPLE_WINDOW];
+    unsigned long timeSamples[SAMPLE_WINDOW];
+    int sampleIndex;
+    int sampleCount;
+    float vectorVx;
+    float vectorVy;
+    float movementSpeedAbs;
+    float avgRPS;
+    float sizeEstimate;
+    String shapeClass;
     void probeHardware();
     
     void setupPins();

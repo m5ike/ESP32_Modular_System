@@ -3,6 +3,7 @@
 #include "CONTROL_WIFI.h"
 #include "CONTROL_LCD.h"
 #include "CONTROL_RADAR.h"
+#include "../../include/ModuleRegistry.h"
 #include <WiFi.h>
 #include <esp_system.h>
 
@@ -377,6 +378,58 @@ void CONTROL_SERIAL::processCommand(const String& command) {
     else if (cmd == "clear") {
         Serial.print("\033[2J\033[H"); // Clear screen
     }
+    else if (cmd.startsWith("func ")) {
+        String fargs = command.substring(5); fargs.trim();
+        if (fargs.startsWith("list ")) {
+            String moduleName = fargs.substring(5); moduleName.trim();
+            cmdFunctionList(moduleName);
+        } else if (fargs.startsWith("call ")) {
+            int sp1 = fargs.indexOf(' ');
+            int sp2 = fargs.indexOf(' ', sp1 + 1);
+            if (sp1 > 0 && sp2 > sp1) {
+                String moduleName = fargs.substring(sp1 + 1, sp2);
+                String functionName;
+                int sp3 = fargs.indexOf(' ', sp2 + 1);
+                if (sp3 > sp2) {
+                    functionName = fargs.substring(sp2 + 1, sp3);
+                    String jsonArgs = fargs.substring(sp3 + 1);
+                    cmdFunctionCall(moduleName, functionName, jsonArgs);
+                } else {
+                    functionName = fargs.substring(sp2 + 1);
+                    cmdFunctionCall(moduleName, functionName, "");
+                }
+            } else {
+                Serial.println("Usage: func call <module> <function> [json]");
+            }
+        } else if (fargs.startsWith("register ")) {
+            String rest = fargs.substring(9); rest.trim();
+            if (rest.startsWith("name ")) {
+                int sp1 = rest.indexOf(' ');
+                int sp2 = rest.indexOf(' ', sp1 + 1);
+                if (sp1 > 0 && sp2 > sp1) {
+                    String moduleName = rest.substring(sp1 + 1, sp2);
+                    String functionName = rest.substring(sp2 + 1);
+                    cmdFunctionRegisterName(moduleName, functionName);
+                } else {
+                    Serial.println("Usage: func register name <module> <function>");
+                }
+            } else {
+                Serial.println("Only 'name' type registration supported");
+            }
+        } else if (fargs.startsWith("remove ")) {
+            int sp = fargs.indexOf(' ');
+            int sp2 = fargs.indexOf(' ', sp + 1);
+            if (sp > 0 && sp2 > sp) {
+                String moduleName = fargs.substring(sp + 1, sp2);
+                String functionName = fargs.substring(sp2 + 1);
+                cmdFunctionRemove(moduleName, functionName);
+            } else {
+                Serial.println("Usage: func remove <module> <function>");
+            }
+        } else {
+            Serial.println("Usage: func list <module> | func call <module> <function> [json] | func register name <module> <function> | func remove <module> <function>");
+        }
+    }
     else if (cmd.startsWith("lcd brightness ")) {
         int sp = command.indexOf(' ');
         int val = command.substring(sp + 12).toInt();
@@ -490,6 +543,7 @@ void CONTROL_SERIAL::printHelp() {
     Serial.println("stop <name>        - Stop module (with safety checks)");
     Serial.println("test <name>        - Test module (with safety checks)");
     Serial.println("cmd <m> <c> [a]    - Send command to module (with validation)");
+    Serial.println("func <subcmd>      - Function registry management");
     Serial.println("config <subcmd>    - Configuration management");
     Serial.println("system <subcmd>    - System-level commands");
     Serial.println("realtime           - Real-time status monitoring");
@@ -773,6 +827,24 @@ void CONTROL_SERIAL::cmdHelpDetailed(const String& command) {
         Serial.println("Shows recent system logs with timestamps");
         Serial.println("Default: 20 lines, Maximum: 1000 lines");
     }
+    else if (cmd == "func") {
+        Serial.println("Function registry management:");
+        Serial.println("Usage:");
+        Serial.println("- func list <module>");
+        Serial.println("- func call <module> <function> [json]");
+        Serial.println("- func register name <module> <function>");
+        Serial.println("- func remove <module> <function>");
+        Serial.println("");
+        Serial.println("Examples:");
+        Serial.println("- func list CONTROL_LCD");
+        Serial.println("- func call CONTROL_LCD lcd_text {\"x\":10,\"y\":20,\"text\":\"Hello\"}");
+        Serial.println("- func register name CONTROL_LCD lcd_text");
+        Serial.println("- func remove CONTROL_LCD lcd_text");
+        Serial.println("");
+        Serial.println("Notes:");
+        Serial.println("- NAME-type functions dispatch to module's callFunctionByName");
+        Serial.println("- JSON parameters are optional; pass when the function expects them");
+    }
     else if (cmd == "set" || cmd == "setjson") {
         Serial.println("Configuration modification commands:");
         Serial.println("Usage: set <module> <key> <value>");
@@ -876,6 +948,45 @@ void CONTROL_SERIAL::cmdConfig(const String& args) {
         Serial.println("Unknown config command: " + configCmd);
         Serial.println("Available: show <module>, backup, restore <name>, validate, schema");
     }
+}
+
+void CONTROL_SERIAL::cmdFunctionList(const String& moduleName) {
+    Serial.println("\n========== Functions ==========");
+    auto names = ModuleRegistry::getInstance()->getFunctionsForModule(moduleName);
+    if (names.size() == 0) {
+        Serial.println("(none)");
+    } else {
+        for (const String& n : names) {
+            Serial.println(moduleName + String(":") + n);
+        }
+    }
+    Serial.println("================================");
+}
+
+void CONTROL_SERIAL::cmdFunctionRegisterName(const String& moduleName, const String& functionName) {
+    Module* mod = ModuleManager::getInstance()->getModule(moduleName);
+    if (!mod) { Serial.println("Module not found: " + moduleName); return; }
+    bool ok = ModuleRegistry::getInstance()->registerFunctionName(moduleName, functionName, functionName);
+    Serial.println(ok ? "Registered" : "Register failed");
+}
+
+void CONTROL_SERIAL::cmdFunctionRemove(const String& moduleName, const String& functionName) {
+    bool ok = ModuleRegistry::getInstance()->unregisterFunction(moduleName, functionName);
+    Serial.println(ok ? "Removed" : "Remove failed");
+}
+
+void CONTROL_SERIAL::cmdFunctionCall(const String& moduleName, const String& functionName, const String& jsonArgs) {
+    DynamicJsonDocument params(1024);
+    if (jsonArgs.length() > 0) {
+        auto err = deserializeJson(params, jsonArgs);
+        if (err != DeserializationError::Ok) {
+            Serial.println("Invalid JSON params: " + String(err.c_str()));
+            return;
+        }
+    }
+    String result;
+    bool ok = ModuleRegistry::getInstance()->callFunction(moduleName, functionName, &params, result);
+    Serial.println(ok ? String("CALL OK: ") + result : String("CALL FAIL"));
 }
 
 void CONTROL_SERIAL::cmdSystem(const String& args) {
@@ -1230,6 +1341,7 @@ String CONTROL_SERIAL::getCommandHelp(const String& command) {
     if (cmd == "stop") return "Stop a module";
     if (cmd == "test") return "Test a module";
     if (cmd == "cmd") return "Send command to module";
+    if (cmd == "func") return "Function registry management";
     if (cmd == "config") return "Configuration management";
     if (cmd == "system") return "System commands";
     if (cmd == "realtime") return "Real-time monitoring";

@@ -11,5 +11,12 @@
     "dc": 2,
     "rst": 4,
     "blk": 32
-  }
+  },
+  "functions": [
+    {"functionName": "lcd_log_append", "functionHandle": "fn_lcd_log_append", "functionType": "NAME"},
+    {"functionName": "lcd_radar_update", "functionHandle": "fn_lcd_radar_update", "functionType": "NAME"},
+    {"functionName": "lcd_status", "functionHandle": "fn_lcd_status", "functionType": "NAME"},
+    {"functionName": "lcd_text", "functionHandle": "fn_lcd_text", "functionType": "NAME"},
+    {"functionName": "lcd_boot_step", "functionHandle": "fn_lcd_boot_step", "functionType": "NAME"}
+  ]
 }

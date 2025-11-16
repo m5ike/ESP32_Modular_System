@@ -135,14 +135,14 @@ void setup() {
                 String ip = wifiModule->getIP();
                 DynamicJsonDocument* v2 = new DynamicJsonDocument(256);
                 (*v2)["x"] = 10;
-                (*v2)["y"] = 200;
+                (*v2)["y"] = 265;
                 (*v2)["text"] = String("WiFi: ") + wifiModule->getSSID();
                 (*v2)["color"] = (uint16_t)TFT_CYAN;
                 QueueMessage* m2 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v2};
                 qb->send(m2);
                 DynamicJsonDocument* v3 = new DynamicJsonDocument(256);
                 (*v3)["x"] = 10;
-                (*v3)["y"] = 215;
+                (*v3)["y"] = 280;
                 (*v3)["text"] = String("IP: ") + ip;
                 (*v3)["color"] = (uint16_t)TFT_CYAN;
                 QueueMessage* m3 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v3};
@@ -150,7 +150,7 @@ void setup() {
             }
             DynamicJsonDocument* v4 = new DynamicJsonDocument(256);
             (*v4)["x"] = 10;
-            (*v4)["y"] = 240;
+            (*v4)["y"] = 295;
             (*v4)["text"] = String("Web: http://192.168.4.1");
             (*v4)["color"] = (uint16_t)TFT_YELLOW;
             QueueMessage* m4 = new QueueMessage{genUUID4(), lcdModule->getName(), String("main"), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_text"), v4};

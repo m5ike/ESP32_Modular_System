@@ -54,6 +54,14 @@ CONTROL_RADAR::CONTROL_RADAR() : Module("CONTROL_RADAR") {
     sensorPresent = false;
     stepperPresent = false;
     buttonsPresent = false;
+    sampleIndex = 0;
+    sampleCount = 0;
+    vectorVx = 0.0f;
+    vectorVy = 0.0f;
+    movementSpeedAbs = 0.0f;
+    avgRPS = 0.0f;
+    sizeEstimate = 0.0f;
+    shapeClass = String("unknown");
 }
 
 CONTROL_RADAR::~CONTROL_RADAR() {
@@ -116,10 +124,37 @@ bool CONTROL_RADAR::update() {
                     float v = (float)(d - lastDistance) / ((float)dt / 1000.0);
                     lastSpeed = v;
                     movementDir = (v > 0) ? 1 : (v < 0 ? -1 : 0);
+                    float rad = angleDeg * 0.01745329252f;
+                    vectorVx = v * cos(rad);
+                    vectorVy = v * sin(rad);
+                    movementSpeedAbs = v >= 0 ? v : -v;
                 }
             }
             lastDistance = d;
             lastMeasureMs = now;
+            distSamples[sampleIndex] = d;
+            timeSamples[sampleIndex] = now;
+            sampleIndex = (sampleIndex + 1) % SAMPLE_WINDOW;
+            if (sampleCount < SAMPLE_WINDOW) sampleCount++;
+            int cnt = 0;
+            for (int i = 0; i < sampleCount; i++) {
+                unsigned long t = timeSamples[i];
+                if (now - t <= 1000) cnt++;
+            }
+            avgRPS = (float)cnt;
+            float mean = 0.0f;
+            for (int i = 0; i < sampleCount; i++) mean += (float)distSamples[i];
+            if (sampleCount > 0) mean /= (float)sampleCount;
+            float var = 0.0f;
+            for (int i = 0; i < sampleCount; i++) {
+                float dd = (float)distSamples[i] - mean;
+                var += dd * dd;
+            }
+            if (sampleCount > 1) var /= (float)(sampleCount - 1);
+            sizeEstimate = sqrtf(var);
+            if (sizeEstimate < 2.0f) shapeClass = String("point");
+            else if (sizeEstimate < 5.0f) shapeClass = String("round");
+            else shapeClass = String("flat");
             Module* lcdMod = ModuleManager::getInstance()->getModule("CONTROL_LCD");
             if (lcdMod && lcdMod->getState() == MODULE_ENABLED) {
                 QueueBase* qb = lcdMod->getQueue();
@@ -130,6 +165,12 @@ bool CONTROL_RADAR::update() {
                     (*vars)["dir"] = measureMode == 1 ? movementDir : 0;
                     (*vars)["type"] = (int)component.type;
                     (*vars)["ang"] = (int)angleDeg;
+                    (*vars)["vx"] = vectorVx;
+                    (*vars)["vy"] = vectorVy;
+                    (*vars)["ms"] = movementSpeedAbs;
+                    (*vars)["size"] = sizeEstimate;
+                    (*vars)["shape"] = shapeClass;
+                    (*vars)["avg_rps"] = avgRPS;
                     QueueMessage* msg = new QueueMessage{genUUID4(), lcdMod->getName(), getName(), EVENT_DATA_READY, CALL_FUNCTION_ASYNC, String("lcd_radar_update"), vars};
                     qb->send(msg);
                 }

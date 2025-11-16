@@ -1,5 +1,8 @@
 #include "CONTROL_LCD.h"
 #include "CONTROL_WIFI.h"
+#include "../../include/ModuleRegistry.h"
+#include "../../include/ModuleRegistry.h"
+#include "../../include/ModuleRegistry.h"
 
 CONTROL_LCD::CONTROL_LCD() : Module("CONTROL_LCD") {
     tft = nullptr;
@@ -78,6 +81,7 @@ bool CONTROL_LCD::start() {
     
     setState(MODULE_ENABLED);
     setBrightness(brightness);
+    registerFunctions();
     log("LCD started");
     return true;
 }
@@ -87,7 +91,7 @@ bool CONTROL_LCD::stop() {
         clear();
         setBrightness(0);
     }
-    
+    unregisterFunctions();
     setState(MODULE_DISABLED);
     log("LCD stopped");
     return true;
@@ -99,50 +103,14 @@ bool CONTROL_LCD::update() {
         QueueMessage* incoming = nullptr;
         if (qb->receive(incoming)) {
             if (incoming && incoming->callVariables) {
-                if (incoming->callName == "lcd_log_append") {
-                    JsonArray arr = (*incoming->callVariables)["v"].as<JsonArray>();
-                    for (JsonVariant v : arr) { appendLogLine(v.as<String>()); }
-                    int16_t yStart = LCD_HEIGHT - 70;
-                    tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
-                    tft->setTextColor(TFT_WHITE);
-                    tft->setTextSize(1);
-                    int16_t y = yStart + 4;
-                    for (const String& s : logLines) { tft->setCursor(4, y); tft->print(s); y += 12; }
-                } else if (incoming->callName == "lcd_radar_update") {
-                    int d = (*incoming->callVariables)["d"] | -1;
-                    float v = (*incoming->callVariables)["v"] | 0.0f;
-                    int dir = (*incoming->callVariables)["dir"] | 0;
-                    int type = (*incoming->callVariables)["type"] | 0;
-                    int ang = (*incoming->callVariables)["ang"] | 0;
-                    if (firstRadarDraw || d != lastRadarDistance || ang != lastRadarAngle || dir != lastRadarDir || type != lastRadarType) {
-                        drawRadarBox(d, v, dir, type, ang);
-                        lastRadarDistance = d;
-                        lastRadarSpeed = v;
-                        lastRadarDir = dir;
-                        lastRadarType = type;
-                        lastRadarAngle = ang;
-                        firstRadarDraw = false;
-                    }
-                } else if (incoming->callName == "lcd_status") {
-                    String title = (*incoming->callVariables)["title"].as<String>();
-                    JsonArray lines = (*incoming->callVariables)["lines"].as<JsonArray>();
-                    std::vector<String> ls;
-                    for (JsonVariant it : lines) { ls.push_back(it.as<String>()); }
-                    displayStatus(title, ls);
-                } else if (incoming->callName == "lcd_text") {
-                    int16_t x = (*incoming->callVariables)["x"] | 0;
-                    int16_t y = (*incoming->callVariables)["y"] | 0;
-                    String text = (*incoming->callVariables)["text"].as<String>();
-                    uint16_t color = (*incoming->callVariables)["color"] | TFT_WHITE;
-                    drawText(x, y, text, color, 1);
-                } else if (incoming->callName == "lcd_boot_step") {
-                    String op = (*incoming->callVariables)["op"].as<String>();
-                    int percent = (*incoming->callVariables)["percent"] | 0;
-                    tft->fillRect(0, 0, LCD_WIDTH, 40, TFT_BLACK);
-                    drawCenteredText(18, "ESP32 Modular System", TFT_CYAN, 2);
-                    tft->fillRect(0, 60, LCD_WIDTH, 180, TFT_BLACK);
-                    drawCenteredText(120, op, TFT_WHITE, 2);
-                    drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
+                String result;
+                bool ok = ModuleRegistry::getInstance()->callFunction(getName(), incoming->callName, incoming->callVariables, result);
+                if (!ok) {
+                    if (incoming->callName == "lcd_log_append") { fn_lcd_log_append(incoming->callVariables, result); }
+                    else if (incoming->callName == "lcd_radar_update") { fn_lcd_radar_update(incoming->callVariables, result); }
+                    else if (incoming->callName == "lcd_status") { fn_lcd_status(incoming->callVariables, result); }
+                    else if (incoming->callName == "lcd_text") { fn_lcd_text(incoming->callVariables, result); }
+                    else if (incoming->callName == "lcd_boot_step") { fn_lcd_boot_step(incoming->callVariables, result); }
                 }
                 delete incoming->callVariables;
                 delete incoming;
@@ -220,6 +188,14 @@ bool CONTROL_LCD::loadConfig(DynamicJsonDocument& doc) {
             rotation = (uint8_t)mapped;
             if (tft) tft->setRotation(rotation);
         }
+        if (!lcd.containsKey("functions")) {
+            JsonArray fns = lcd.createNestedArray("functions");
+            JsonObject o1 = fns.createNestedObject(); o1["functionName"] = "lcd_log_append"; o1["functionHandle"] = "fn_lcd_log_append"; o1["functionType"] = "NAME";
+            JsonObject o2 = fns.createNestedObject(); o2["functionName"] = "lcd_radar_update"; o2["functionHandle"] = "fn_lcd_radar_update"; o2["functionType"] = "NAME";
+            JsonObject o3 = fns.createNestedObject(); o3["functionName"] = "lcd_status"; o3["functionHandle"] = "fn_lcd_status"; o3["functionType"] = "NAME";
+            JsonObject o4 = fns.createNestedObject(); o4["functionName"] = "lcd_text"; o4["functionHandle"] = "fn_lcd_text"; o4["functionType"] = "NAME";
+            JsonObject o5 = fns.createNestedObject(); o5["functionName"] = "lcd_boot_step"; o5["functionHandle"] = "fn_lcd_boot_step"; o5["functionType"] = "NAME";
+        }
     }
     return true;
 }
@@ -286,6 +262,10 @@ void CONTROL_LCD::appendLogLine(const String& line) {
     while (logLines.size() > 5) logLines.erase(logLines.begin());
 }
 
+
+
+// duplicate removed
+
 void CONTROL_LCD::drawRectangle(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color, bool filled) {
     if (!tft) return;
     
@@ -345,7 +325,7 @@ void CONTROL_LCD::displayWelcome() {
     
     drawCenteredText(LCD_HEIGHT / 2 - 40, "ESP32", TFT_CYAN, 3);
     drawCenteredText(LCD_HEIGHT / 2 - 10, "Modular System", TFT_WHITE, 3);
-    drawCenteredText(LCD_HEIGHT / 2 + 20, "v1.0.0", TFT_GREEN, 1);
+    drawCenteredText(LCD_HEIGHT / 2 + 20, "v1.0.1", TFT_GREEN, 1);
     
     delay(2000);
     clear();
@@ -372,7 +352,7 @@ void CONTROL_LCD::drawProgressBar(int16_t x, int16_t y, int16_t w, int16_t h, ui
     tft->setTextDatum(TL_DATUM);
 }
 
-void CONTROL_LCD::drawRadarBox(int d, float v, int dir, int type, int ang) {
+void CONTROL_LCD::drawRadarBox(int d, float v, int dir, int type, int ang, float vx, float vy, float ms, float size, const String& shape, float avgRps) {
     if (!tft) return;
     int16_t top = 50;
     int16_t h = 200;
@@ -400,6 +380,24 @@ void CONTROL_LCD::drawRadarBox(int d, float v, int dir, int type, int ang) {
         int16_t ey = cy + (int16_t)(len * sin(rad));
         tft->drawLine(cx, cy, ex, ey, TFT_YELLOW);
     }
+    tft->setTextDatum(TL_DATUM);
+    int16_t textX = left + 8;
+    int16_t textY = top + 60;
+    tft->fillRect(left + 2, textY - 4, w - 4, 56, TFT_DARKGREY);
+    tft->setTextColor(TFT_BLACK, TFT_DARKGREY);
+    tft->setCursor(textX, textY);
+    tft->setTextColor(TFT_BLUE, TFT_DARKGREY);
+    tft->print(String("Vec x") + String(vx, 2)  + " cm/s");
+    tft->setCursor(textX, textY + 20);
+    tft->print(String("Vec y")  + String(vy, 2) + " cm/s");
+    tft->setCursor(textX, textY + 40);
+    tft->setTextColor(TFT_DARKGREEN, TFT_DARKGREY);
+    tft->print(String("Move ") + String(ms, 2) + " cm/s");
+    tft->setCursor(textX, textY + 60);
+    tft->print(String("Size ") + String(size, 2) + " cm");
+    tft->setCursor(textX, textY + 80);
+    tft->setTextColor(TFT_OLIVE, TFT_DARKGREY);
+    tft->print(String("Shape ") + shape + String("  RPS ") + String(avgRps, 1));
     {
         Module* wifiMod = ModuleManager::getInstance()->getModule("CONTROL_WIFI");
         String ip = wifiMod ? static_cast<CONTROL_WIFI*>(wifiMod)->getIP() : String("esp32.local");
@@ -414,4 +412,102 @@ void CONTROL_LCD::drawFooterURL(const String& url) {
     tft->setTextDatum(MC_DATUM);
     tft->fillRect(0, LCD_HEIGHT - 16, LCD_WIDTH, 16, TFT_BLACK);
     tft->drawString(url, LCD_WIDTH/2, LCD_HEIGHT - 8);
+}
+
+bool CONTROL_LCD::fn_lcd_log_append(DynamicJsonDocument* params, String& result) {
+    JsonArray arr = (*params)["v"].as<JsonArray>();
+    for (JsonVariant v : arr) { appendLogLine(v.as<String>()); }
+    int16_t yStart = LCD_HEIGHT - 70;
+    tft->fillRect(0, yStart, LCD_WIDTH, 70, TFT_BLACK);
+    tft->setTextColor(TFT_WHITE);
+    tft->setTextSize(1);
+    int16_t y = yStart + 4;
+    for (const String& s : logLines) { tft->setCursor(4, y); tft->print(s); y += 12; }
+    result = String("ok");
+    return true;
+}
+
+bool CONTROL_LCD::fn_lcd_radar_update(DynamicJsonDocument* params, String& result) {
+    int d = (*params)["d"] | -1;
+    float v = (*params)["v"] | 0.0f;
+    int dir = (*params)["dir"] | 0;
+    int type = (*params)["type"] | 0;
+    int ang = (*params)["ang"] | 0;
+    float vx = (*params)["vx"] | 0.0f;
+    float vy = (*params)["vy"] | 0.0f;
+    float ms = (*params)["ms"] | 0.0f;
+    float size = (*params)["size"] | 0.0f;
+    String shape = (*params)["shape"].as<String>();
+    float avgRps = (*params)["avg_rps"] | 0.0f;
+    bool changed = firstRadarDraw || d != lastRadarDistance || ang != lastRadarAngle || dir != lastRadarDir || type != lastRadarType || vx != lastRadarVx || vy != lastRadarVy || ms != lastRadarMS || size != lastSize || shape != lastShape || avgRps != lastAvgRPS;
+    if (changed) {
+        drawRadarBox(d, v, dir, type, ang, vx, vy, ms, size, shape, avgRps);
+        lastRadarDistance = d;
+        lastRadarSpeed = v;
+        lastRadarDir = dir;
+        lastRadarType = type;
+        lastRadarAngle = ang;
+        lastRadarVx = vx;
+        lastRadarVy = vy;
+        lastRadarMS = ms;
+        lastSize = size;
+        lastShape = shape;
+        lastAvgRPS = avgRps;
+        firstRadarDraw = false;
+    }
+    result = String("ok");
+    return true;
+}
+
+bool CONTROL_LCD::fn_lcd_status(DynamicJsonDocument* params, String& result) {
+    String title = (*params)["title"].as<String>();
+    JsonArray lines = (*params)["lines"].as<JsonArray>();
+    std::vector<String> ls;
+    for (JsonVariant it : lines) { ls.push_back(it.as<String>()); }
+    displayStatus(title, ls);
+    result = String("ok");
+    return true;
+}
+
+bool CONTROL_LCD::fn_lcd_text(DynamicJsonDocument* params, String& result) {
+    int16_t x = (*params)["x"] | 0;
+    int16_t y = (*params)["y"] | 0;
+    String text = (*params)["text"].as<String>();
+    uint16_t color = (*params)["color"] | TFT_WHITE;
+    drawText(x, y, text, color, 1);
+    result = String("ok");
+    return true;
+}
+
+bool CONTROL_LCD::fn_lcd_boot_step(DynamicJsonDocument* params, String& result) {
+    String op = (*params)["op"].as<String>();
+    int percent = (*params)["percent"] | 0;
+    tft->fillRect(0, 0, LCD_WIDTH, 40, TFT_BLACK);
+    drawCenteredText(18, "ESP32 Modular System", TFT_CYAN, 2);
+    tft->fillRect(0, 60, LCD_WIDTH, 180, TFT_BLACK);
+    drawCenteredText(120, op, TFT_WHITE, 2);
+    drawProgressBar(20, LCD_HEIGHT - 90, LCD_WIDTH - 40, 16, percent, TFT_GREEN);
+    result = String("ok");
+    return true;
+}
+
+bool CONTROL_LCD::callFunctionByName(const String& name, DynamicJsonDocument* params, String& result) {
+    if (name == "fn_lcd_log_append") return fn_lcd_log_append(params, result);
+    if (name == "fn_lcd_radar_update") return fn_lcd_radar_update(params, result);
+    if (name == "fn_lcd_status") return fn_lcd_status(params, result);
+    if (name == "fn_lcd_text") return fn_lcd_text(params, result);
+    if (name == "fn_lcd_boot_step") return fn_lcd_boot_step(params, result);
+    return false;
+}
+
+void CONTROL_LCD::registerFunctions() {
+    ModuleRegistry::getInstance()->registerFunctionName(getName(), String("lcd_log_append"), String("fn_lcd_log_append"));
+    ModuleRegistry::getInstance()->registerFunctionName(getName(), String("lcd_radar_update"), String("fn_lcd_radar_update"));
+    ModuleRegistry::getInstance()->registerFunctionName(getName(), String("lcd_status"), String("fn_lcd_status"));
+    ModuleRegistry::getInstance()->registerFunctionName(getName(), String("lcd_text"), String("fn_lcd_text"));
+    ModuleRegistry::getInstance()->registerFunctionName(getName(), String("lcd_boot_step"), String("fn_lcd_boot_step"));
+}
+
+void CONTROL_LCD::unregisterFunctions() {
+    // For now, recreate registry on demand; to fully unregister, recreate ModuleRegistry or add removal API
 }

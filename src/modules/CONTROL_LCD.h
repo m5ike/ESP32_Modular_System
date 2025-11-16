@@ -26,11 +26,26 @@ private:
     int lastRadarDir;
     int lastRadarType;
     int lastRadarAngle;
+    float lastRadarVx;
+    float lastRadarVy;
+    float lastRadarMS;
+    float lastAvgRPS;
+    float lastSize;
+    String lastShape;
     bool firstRadarDraw;
     
     void setupBacklight();
-    void drawRadarBox(int d, float v, int dir, int type, int ang);
+    void drawRadarBox(int d, float v, int dir, int type, int ang, float vx, float vy, float ms, float size, const String& shape, float avgRps);
+    void registerFunctions();
+    void unregisterFunctions();
     void drawFooterURL(const String& url);
+    
+    // Registered functions (public for NAME dispatch)
+    bool fn_lcd_log_append(DynamicJsonDocument* params, String& result);
+    bool fn_lcd_radar_update(DynamicJsonDocument* params, String& result);
+    bool fn_lcd_status(DynamicJsonDocument* params, String& result);
+    bool fn_lcd_text(DynamicJsonDocument* params, String& result);
+    bool fn_lcd_boot_step(DynamicJsonDocument* params, String& result);
     
 public:
     CONTROL_LCD();
@@ -44,6 +59,7 @@ public:
     bool test() override;
     DynamicJsonDocument getStatus() override;
     bool loadConfig(DynamicJsonDocument& doc) override;
+    bool callFunctionByName(const String& name, DynamicJsonDocument* params, String& result) override;
     
     // LCD control
     TFT_eSPI* getDisplay() { return tft; }
